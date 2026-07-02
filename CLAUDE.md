@@ -6,6 +6,11 @@ implemented here, grounds it in the accompanying bachelor thesis, maps each
 processing stage to the source code, and records the conventions and caveats
 necessary to operate or extend the pipeline safely.
 
+> **Active development branch.** Work in this repository currently proceeds on
+> `claude/repo-overview-documentation-brui3h`. Commit documentation and refactoring
+> changes to that branch and push there; see `REQUIREMENTS.md` for the planned
+> refactor and the web data-input application.
+
 ## Provenance
 
 This software is the analysis pipeline of the bachelor thesis
