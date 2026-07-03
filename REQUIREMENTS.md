@@ -46,9 +46,9 @@ reproduce catalogue values within uncertainty?" is the regression gate.
 
 ### 2. Configuration & CLI
 
-- **R-6 (P0).** Externalise configuration into a **data** file (YAML or JSON), not
-  executable Python. Provide a schema and validation; a malformed config **MUST**
-  fail fast with a clear message naming the offending field.
+- **R-6 (P0).** Externalise configuration into a **data** file in **TOML** (see
+  `ADR.md`, ADR-0001), not executable Python. Provide a schema and validation; a
+  malformed config **MUST** fail fast with a clear message naming the offending field.
 - **R-7 (P0).** Target selection **MUST** be a first-class input (a config file per
   target, or a `--target` selector) — not commenting/uncommenting code blocks.
   Ship the WASP-52 b, HAT-P-19 b, and TrES-5 b configurations as example files.
@@ -164,9 +164,18 @@ from a directory of FITS frames to a light curve with minimal typing.
   labelled and listed, and be individually removable/renamable.
 - **W-6 (P1).** On click, the app **SHOULD** snap to the local centroid and overlay the
   configured aperture and annulus, giving immediate visual feedback on radii choices.
-- **W-7 (P1).** The viewer **SHOULD** let the user step through frames (slider/next)
-  and, where drift is uncorrected, mark the frame index and new position to build the
-  manual `i`/`shift_x`/`shift_y` arrays visually — or preview automatic tracking (R-16).
+- **W-7 (P1).** The viewer **SHOULD** let the user step through frames (via the W-14
+  timeline) and, where drift is uncorrected, mark the frame index and new position to
+  build the manual `i`/`shift_x`/`shift_y` arrays visually — or preview automatic
+  tracking (R-16).
+- **W-14 (P1) — Timeline slider.** A draggable timeline / scrubber beneath the frame
+  viewer **MUST** let the user scroll through the ordered frame series, with dragging
+  updating the displayed frame in real time. It **MUST** show the current frame index
+  and its `TIME-OBS` timestamp, **SHOULD** support keyboard stepping and an optional
+  play/pause auto-advance, and **SHOULD** stay synchronised with the light-curve view
+  (moving the slider highlights the corresponding light-curve point, and selecting a
+  light-curve point moves the slider). Frame decoding **SHOULD** be pre-cached or
+  down-sampled so scrubbing stays interactive (see W-NFR-2).
 
 **Parameter forms & validation**
 
@@ -220,8 +229,9 @@ and non-functional requirements is acceptable; the requirements above are the co
 
 ### Milestones
 
-1. **M1 — Config generator.** W-1, W-2, W-4, W-5, W-8, W-9, W-11: ingest frames, pick
-   stars by click, fill validated forms, export a pipeline config. (No run yet.)
+1. **M1 — Config generator.** W-1, W-2, W-4, W-5, W-8, W-9, W-11, W-14: ingest frames,
+   scrub the frame series on a timeline, pick stars by click, fill validated forms,
+   export a pipeline config. (No run yet.)
 2. **M2 — Guided photometry.** W-6, W-7, W-10: centroid snapping, aperture overlay,
    drift/tracking assistance, catalogue auto-fill.
 3. **M3 — Run & results.** W-12, W-13: execute the reduction and display/compare light
