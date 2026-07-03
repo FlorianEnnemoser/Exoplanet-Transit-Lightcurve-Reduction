@@ -103,3 +103,286 @@ committed **`uv.lock`** for reproducibility, development tools (`pytest`, `ruff`
   `pyproject.toml` dependency declarations remain portable and tool-agnostic).
 - Refines — does **not** supersede — R-4's "`pyproject.toml` or `requirements.txt`"
   wording to mandate `uv` + `pyproject.toml`.
+
+---
+
+## ADR-0003 — Photometric time base: BJD_TDB
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` R-12, R-18
+
+### Context
+
+The current code reads the `TIME-OBS` header as a **string used only as a plot
+label** (`ExoplanetLightcurve.py:350`); there is no numeric, uniform time base.
+Transit science — mid-transit time `T₀`, `O − C` against ephemerides, comparison
+with catalogue values and other observers — needs a barycentric, relativistic-
+clock-consistent scale. Forces: the data are single-site, but results should be
+comparable to catalogues; `astropy` supplies `Time` + `SkyCoord.light_travel_time`
+for BJD_TDB with no extra dependency.
+
+### Decision
+
+Compute **BJD_TDB per frame** from the FITS `DATE-OBS`/`TIME-OBS` and `EXPTIME`
+(using **mid-exposure** time) plus the target coordinates, via
+`astropy.time.Time` + barycentric `light_travel_time` in the **TDB** scale. Store
+BJD_TDB as the light-curve time ordinate; retain the raw header timestamp for
+provenance.
+
+### Consequences
+
+- `+` Community standard for transit timing; comparable across observatories and
+  epochs; enables proper `T₀` and `O − C`.
+- `+` `astropy`-native — no new dependency; also removes the midnight-rollover
+  ambiguity of the raw wall-clock string.
+- `+` Mid-exposure timing accounts for `EXPTIME`, improving accuracy.
+- `−` Depends on reliable header keywords (`DATE-OBS`, `EXPTIME`) and target
+  coordinates; must validate up front with a clear failure (ties to R-18) — a
+  wrong site/coords yields subtly wrong times.
+- `−` Marginally more per-frame computation (negligible).
+
+---
+
+## ADR-0004 — Automatic drift tracking: whole-frame cross-correlation registration
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` R-16, R-11
+
+### Context
+
+The acknowledged **principal limitation** is manual drift correction via
+`i`/`shift_x`/`shift_y` arrays re-tuned per dataset
+(`ExoplanetLightcurve.py:244`). R-16 requires automatic tracking. The candidates
+were per-frame re-centroiding on the brightest source versus whole-frame
+registration. Notably, KELT-16 b **failed** when out-of-focus early frames made
+`DAOStarFinder` lock onto background — a single-source tracker is fragile in
+exactly that regime, whereas a field-wide registration uses all the flux.
+
+### Decision
+
+Register each frame to a reference frame by **phase cross-correlation**
+(e.g. `skimage.registration.phase_cross_correlation`, or an FFT-based equivalent),
+producing a global `(dx, dy)` shift applied to every crop window; then refine
+per-star centroids within the shifted window for photometry. Keep the manual
+shift arrays available as an explicit **fallback** behind a config switch.
+
+### Consequences
+
+- `+` Uses whole-field signal → robust when any single star is poorly detected
+  (the KELT-16 failure mode); one shift serves all stars consistently.
+- `+` Eliminates the principal manual step; reproducible across datasets.
+- `+` Manual fallback retained for pathological data.
+- `−` Assumes translational drift (no significant rotation/scale); rotation would
+  need a richer model — acceptable for this instrument/mount.
+- `−` Needs a reference frame and sub-pixel interpolation, and adds a dependency
+  (`scikit-image` or equivalent) — pin it via ADR-0002.
+- `−` Per-frame FFT cost; must stay within the NFR-1 (~20% runtime) budget.
+
+---
+
+## ADR-0005 — Differential comparison: variance/SNR-weighted ensemble with iterative rejection
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` R-15, R-11, R-13
+
+### Context
+
+Generalising from exactly two calibrators to *N ≥ 1* (R-15) requires a
+combination rule. An equal-weight sum maximises Poisson SNR but does **not**
+suppress variable or systematic-laden comparison stars. Both current best-practice
+tooling and post-2021 pipelines favour a **weighted artificial comparison** with
+iterative rejection of unsuitable stars; this is a deliberate, literature-grounded
+choice (the user requested current references).
+
+### Decision
+
+Construct an **artificial comparison star** as the weighted sum of calibrator
+fluxes, with weights derived self-consistently from each star's **out-of-transit
+scatter / SNR**, iterating to drop stars that *increase* the residual RMS/BIC
+(a Broeg-style algorithm). Form `science / artificial-comparison` as the
+differential light curve, retain individual `sci/cal` ratios as diagnostics, and
+record which comparisons were used/rejected in the outputs (ties R-23). Weighting
+uses **only** the baseline (out-of-transit) window to avoid circularity with the
+transit-depth windows (R-13); guard the `N = 1` case (no rejection).
+
+### Method references
+
+- Broeg, Fernández & Neuhäuser (2005), *Astron. Nachr.* **326**, 134 — origin of
+  the optimum artificial-comparison algorithm (self-consistent variability
+  weights). DOI [10.1002/asna.200410350](https://doi.org/10.1002/asna.200410350)
+- Collins, Kielkopf, Stassun & Hessman (2017), *AJ* **153**, 77 — AstroImageJ,
+  the weighted-ensemble implementation that is the AAVSO/ExoClock reference tool.
+  DOI [10.3847/1538-3881/153/2/77](https://doi.org/10.3847/1538-3881/153/2/77)
+- Dransfield et al. (2022), *Proc. SPIE* **12186**, 121861F — ASTEP+ automatic
+  weighted differential-photometry pipeline (post-2021).
+  DOI [10.1117/12.2629920](https://doi.org/10.1117/12.2629920)
+
+### Consequences
+
+- `+` Higher precision than an equal-weight sum; suppresses variable comparisons;
+  matches community-standard tooling.
+- `+` Scales to N calibrators and degrades gracefully to a single comparison.
+- `+` The rejection log improves transparency and reproducibility.
+- `−` More complex: needs per-star noise estimates and an iteration/convergence
+  criterion; the `N = 1` path must be handled explicitly.
+- `−` Weights depend on the out-of-transit window definition (coupled to R-13);
+  mitigated by weighting on baseline only.
+- `−` Must still satisfy the **acceptance invariant**: the WASP-52 b weighted
+  result must reproduce catalogue values within uncertainty.
+
+---
+
+## ADR-0006 — Results output: extended CSV + JSON sidecar
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` R-23, R-24, R-11
+
+### Context
+
+Output today is a flat CSV of `NUMBER, TIME-OBS, FLUX-*`
+(`ExoplanetLightcurve.py:356`). R-23 wants a machine-readable results file
+capturing per-frame flux, quality flags, chosen method, config hash, and derived
+parameters with uncertainties, plus provenance (R-24). Per-frame tabular data
+suits CSV; nested run metadata and uncertainties suit JSON.
+
+### Decision
+
+Write **both** per run: a per-frame **CSV** (extended with BJD_TDB, per-frame
+quality flags, and comparison-ensemble membership) for quick inspection, and a
+**JSON sidecar** holding run metadata — config hash, software/version provenance
+(R-24), input file list, reduction method, and derived `R_p`, `ρ`, `i` with
+uncertainties.
+
+### Consequences
+
+- `+` Human-friendly rows (CSV) alongside machine-friendly nested metadata (JSON);
+  together they are enough to reproduce a figure.
+- `+` Config hash + provenance make each run self-describing (R-24).
+- `+` JSON needs only the standard-library `json` writer — no new dependency.
+- `−` Two files to keep schema-consistent; the schema must be documented.
+
+---
+
+## ADR-0007 — Lint/format toolchain: Ruff
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` R-22, NFR-2
+
+### Context
+
+R-22 requires CI linting and formatting. Options: Ruff (lint + format),
+Black + Ruff, or Black + flake8. The project already uses `uv` + `pyproject.toml`
+(ADR-0002), which favours a single fast tool configured in one file.
+
+### Decision
+
+Use **Ruff** for both linting and formatting, configured in `pyproject.toml` and
+enforced in CI (R-22). Keep **mypy** separate for type checking (NFR-2).
+
+### Consequences
+
+- `+` One fast tool, a single config section, fewer dependencies; aligns with
+  ADR-0002.
+- `+` Ruff's formatter is Black-compatible, so style is familiar and migration is
+  trivial.
+- `−` Ruff moves quickly — pin its version in `uv.lock` to keep CI stable.
+- `−` A few niche flake8 plugins have no Ruff equivalent; acceptable here.
+
+---
+
+## ADR-0008 — Regression fixture: down-sampled real WASP-52 b subset
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` R-21, R-20 (acceptance invariant)
+
+### Context
+
+The acceptance invariant requires the WASP-52 b *standard* reduction to reproduce
+catalogue values (`R_p ≈ 1.15 R_Jup`, `ρ ≈ 400 kg/m³`, `i ≈ 87.3°`). R-21 needs a
+small committed dataset to guard it. Options: synthetic frames, a down-sampled
+real subset, or both.
+
+### Decision
+
+Commit a small **down-sampled/cropped real WASP-52 b** subset (lights plus
+darks/bias) sufficient to run the standard reduction end to end and assert the
+derived parameters within tolerance. Reserve **synthetic** frames for isolated
+unit tests (R-20) where determinism helps — not for the acceptance gate.
+
+### Consequences
+
+- `+` Most faithful gate; exercises real FITS headers, timestamps, and detection
+  on real PSFs, and directly encodes the thesis' headline result as the contract.
+- `−` Real frames grow the repo (mitigate: crop/bin and keep only a few frames);
+  confirm data licensing permits committing them under GPL v3.
+- `−` A real subset may miss specific transit-window edge cases → complement with
+  targeted synthetic unit tests where useful.
+
+---
+
+## ADR-0009 — Web backend framework: FastAPI wrapping `exotransit`
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` W (Part II), W-NFR-5, W-NFR-3, W-11, W-12, W-3
+
+### Context
+
+The web data-input app (Part II) must **reuse** the Part I `exotransit` package
+rather than reimplement the science (W-NFR-5, W-NFR-3), and expose FITS ingest,
+tile rendering, centroiding, config export (W-11), and run execution (W-12) for a
+single-user, local-first deployment (W-NFR-4). Options: FastAPI, Flask, Django.
+
+### Decision
+
+Use **FastAPI** as a thin backend exposing `exotransit` behind a small HTTP API:
+FITS ingest/summary, frame-tile rendering, click-to-centroid, config
+generation/validation, and run execution. Pydantic models mirror the TOML config
+schema (ADR-0001) so validation is shared between CLI and web.
+
+### Consequences
+
+- `+` Typed, async, minimal; reuses Part I directly (W-NFR-5) → one implementation
+  of the science (W-NFR-3).
+- `+` Pydantic validation aligns with the config schema (R-6/ADR-0001); OpenAPI
+  docs come for free.
+- `+` Lightweight and local-first (W-NFR-4).
+- `−` Async adds complexity for long-running reductions (mitigate: a background
+  task/job endpoint for W-12).
+- `−` Not batteries-included (no ORM/admin) — fine for a single-user tool; session
+  persistence (W-3) uses lightweight storage.
+
+---
+
+## ADR-0010 — Web frontend & FITS viewer: React SPA with server-rendered canvas tiles
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` W-4, W-5, W-6, W-14, W-NFR-2, W-NFR-3
+
+### Context
+
+The core value is an interactive frame viewer: scaling/zoom/pan (W-4),
+click-to-pick stars yielding pixel coordinates (W-5), centroid snap plus
+aperture/annulus overlay (W-6), and a timeline scrubber synchronised with the
+light curve (W-14) — all staying interactive (W-NFR-2). Options: a custom
+React + canvas viewer fed by backend tiles, an embedded JS9, or Aladin Lite.
+
+### Decision
+
+Build a **React single-page app** with a custom **canvas/WebGL viewer** that
+renders PNG/array tiles produced by the FastAPI backend (ADR-0009). The backend
+applies scaling (linear/log/zscale) and **down-samples for display** (W-NFR-2)
+while photometry uses **full resolution** (W-NFR-3); the frontend owns
+click-to-pick, overlays, and the timeline synced to the light-curve view.
+
+### Consequences
+
+- `+` Full control of the bespoke UX (pixel picking, overlays, timeline ↔ light
+  curve sync) that off-the-shelf viewers make awkward.
+- `+` Backend-side rendering/down-sampling keeps scrubbing interactive on large
+  frames (W-NFR-2) while the science stays full-resolution (W-NFR-3).
+- `+` Reuses the backend's `astropy`/`exotransit` stack for scaling/tiling — no
+  second FITS implementation in JavaScript.
+- `−` More frontend code than embedding a ready viewer (JS9/Aladin); we build
+  zoom/pan/scaling UI ourselves.
+- `−` Tile round-trips need caching/pre-fetch to feel instant (mitigate: pre-cache
+  adjacent frames, as W-14 suggests).
