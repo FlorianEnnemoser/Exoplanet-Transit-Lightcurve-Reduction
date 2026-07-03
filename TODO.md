@@ -76,6 +76,10 @@ The script currently cannot run against modern `astropy`/`photutils`.
       produced outputs.
 - [ ] Document the physics behind the planet radius / density / inclination
       calculations (lines 431–466).
+- [ ] Write a project wiki that describes how this project works end to end —
+      the reduction pipeline stages (calibration → photometry → differential
+      light curve → planetary parameters), the data flow between them, and the
+      role of the key configuration options in `exo_input_values.py`.
 
 ## P3 — CI
 
