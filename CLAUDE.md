@@ -17,6 +17,13 @@ Guidance for agents in this repo, in a scientific register: what the pipeline do
 
 Analysis pipeline of the bachelor thesis *"Photometrische Messungen von Exoplanetentransits — Einfluss der Reduktionsmethode auf die Ergebnisse"* (F. Ennemoser; supervisor Dr. T. Ratzka; Karl-Franzens-Universität Graz, 2018). Its question is **methodological** — *how does the choice of CCD reduction method change the derived planet parameters?* — so the code is a switchboard of reduction paths (§5) reused across targets. Built on `astropy` examples + supervisor IDL code; `aperture_photometry` ≡ NASA IDL `APER`. Licence: **GPL v3**.
 
+## Coding Standards and Precedures
+
+- always ask if something is unclear
+- never use `from __future__ import annotations`
+- keep `.py` files under 600 lines.
+- after implementing a TODO, cross it out in `.claude/docs/TODO.md`
+
 ## 1. Overview
 
 A ground-based **differential aperture-photometry** pipeline for transiting hot Jupiters: from a CCD time series it extracts the flux of one science target and two calibrators, forms a differential light curve to cancel atmospheric/instrumental systematics, measures the transit depth, and derives planet radius, density, and inclination with Gaussian-propagated errors. Data: Lustbühel Observatory (Graz), ASA 500 mm f/9 Cassegrain + SBIG STF-8300 CCD, 3×3 binning, Sloan r′, 2016. **Targets:** WASP-52 b (active), HAT-P-19 b, TrES-5 b succeeded; KELT-16 b (out-of-focus frames → detection failed) and TrES-2 b (not 3×3 binned) failed. Two modules, packaged for `uv` under `src/exoplanet_lightcurve/`; still no tests.
