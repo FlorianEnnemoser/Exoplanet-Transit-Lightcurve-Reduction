@@ -5,16 +5,16 @@ __pycache__/
 build/
 dist/
 
-# Data directories created on demand from exo_input_values.py paths (see CLAUDE.md §3)
+# Data directories created on demand from the config [paths] (see CLAUDE.md §3)
 _WASP52b/
 _HATP19b/
 _TrES5b/
 _TrES2b/
 _KELT16b/
-configs/
 
 # Pipeline run artifacts
 exo_console.log
+exotransit.log
 *.csv
 
 *cache

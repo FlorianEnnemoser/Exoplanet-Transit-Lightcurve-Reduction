@@ -154,16 +154,17 @@ science/correctness pass.
       acceptance test self-skips without the WASP-52 b data.)*
 - [x] NumPy-style docstrings on all public functions; type hints passing `mypy`
       non-strict; update `README.md` with install + run instructions once packaging
-      lands (R-25, NFR-2, S-28). *(done — `mypy exotransit/` clean; ruff excludes the
-      legacy `src/`; `README.md` has install/run/physics; public functions carry
-      docstrings.)*
+      lands (R-25, NFR-2, S-28). *(done — `mypy exotransit/` clean; `README.md` has
+      install/run/physics; public functions carry docstrings.)*
 
 ### P2 — After the invariant holds
 
-- [ ] Remove the legacy `src/exoplanet_lightcurve/` code in a dedicated commit once
-      the new package demonstrates the acceptance invariant (S-1). *Deferred: the
-      invariant is demonstrated locally (WASP-52 b, see [`RUN_REPORT.md`](RUN_REPORT.md)),
-      but legacy stays the reference until the open P1 correctness items land.*
+- [x] Remove the legacy `src/exoplanet_lightcurve/` code in a dedicated commit once
+      the new package demonstrates the acceptance invariant (S-1). *(done — all P1
+      items landed and `tests/test_acceptance.py` pins the invariant, so the legacy
+      `ExoplanetLightcurve.py` / `exo_input_values.py` were `git rm`'d; ruff no longer
+      needs to exclude `src/`. Historical `ExoplanetLightcurve.py:NNN` provenance
+      citations remain in the `exotransit` source, preserved via git history.)*
 - [x] ~~Record full provenance so a run is self-describing (software version, config,
       input file list)~~ (R-24, S-22). *Done — `outputs.write_json` (config SHA-256 +
       input file list) is wired in `pipeline.run()`; verified in [`RUN_REPORT.md`](RUN_REPORT.md) §4.*
@@ -247,9 +248,13 @@ are written so they can be dropped cleanly if rejected.
 
 ## Docs & housekeeping (P3)
 
-- [ ] Refresh `CLAUDE.md` `file:line` anchors to symbol references once the code is
-      modularised (R-26, S-1).
-- [ ] Add a `.gitignore` for generated images, logs, and CSV output.
+- [x] Refresh `CLAUDE.md` `file:line` anchors to symbol references once the code is
+      modularised (R-26, S-1). *(done alongside the legacy removal — §1–§6 rewritten
+      to the `exotransit` package; §2 anchors now name `planet.compute` etc.)*
+- [x] Add a `.gitignore` for generated images, logs, and CSV output. *(done —
+      `__pycache__`, `*.csv`, `exo_console.log`/`exotransit.log`, and the `_*b/` data
+      dirs (which hold `images/`) are ignored; the shipped `configs/*.toml` are now
+      tracked, not ignored.)*
 - [ ] Document the reduction physics (planet radius / density / inclination) and the
       pipeline stages end to end in `README.md` / a project wiki once modules land
       (R-25, S-17).
