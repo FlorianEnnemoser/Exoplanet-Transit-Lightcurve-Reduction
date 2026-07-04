@@ -28,8 +28,6 @@ packages = ["exotransit"]
 
 [tool.ruff]
 line-length = 100
-# legacy 2018 pipeline stays untouched until the migration commit (S-1) — don't lint it.
-extend-exclude = ["src"]
 
 [tool.ruff.lint]
 extend-select = ["I"] # import sorting
