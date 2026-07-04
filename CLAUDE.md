@@ -21,6 +21,8 @@ Analysis pipeline of the bachelor thesis *"Photometrische Messungen von Exoplane
 
 - always ask if something is unclear
 - never use `from __future__ import annotations`
+- always use f-strings (e.g.: `f"{mydata}"`) for logging or printing
+- always put imports on top of the file (not inside functions)
 - keep `.py` files under 600 lines.
 - after implementing a TODO, cross it out in `.claude/docs/TODO.md`
 - after implementing, provide a copyable commit message with a Header, short description and Changelog: <trailer> (gitlab style).

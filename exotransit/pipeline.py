@@ -39,7 +39,13 @@ def run(cfg: Config) -> RunResult:
 
     logger.info("building masters")
     masters = calibration.build_masters(frames, cfg)
-    shifts = tracking.resolve_shifts(len(frames.lights), cfg.tracking)
+    if cfg.tracking.mode == "auto":
+        logger.info(
+            f"auto-tracking: phase cross-correlation vs frame {cfg.tracking.reference_frame:d}"
+        )
+        shifts = tracking.auto_shifts(frames, cfg.tracking, masters)
+    else:
+        shifts = tracking.resolve_shifts(len(frames.lights), cfg.tracking)
 
     logger.info("measuring %d stars over %d frames", len(cfg.stars), len(frames.lights))
     phot = photometry.measure_all(frames, masters, shifts, cfg)

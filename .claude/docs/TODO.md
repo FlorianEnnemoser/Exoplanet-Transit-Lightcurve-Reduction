@@ -78,13 +78,15 @@ science/correctness pass.
 
 ### P1 — Correctness & science
 
-- [ ] Replace module-level globals (`images_array`, `dark_master`, `bias_master`,
+- [x] Replace module-level globals (`images_array`, `dark_master`, `bias_master`,
       mutating crop coords) with explicit args/returns and frozen dataclasses;
       `measure_star(frames, masters, star, shifts, cfg)` takes everything as
-      parameters (R-3, S-2).
-- [ ] Master frame construction honouring `master_dark_combine` /
+      parameters (R-3, S-2). *(done — `photometry.measure_star` has that exact
+      signature; every stage passes state explicitly, no module globals.)*
+- [x] Master frame construction honouring `master_dark_combine` /
       `master_bias_combine` — fixes the legacy always-mean bias bug; build only the
-      masters the method needs (R-10, S-7).
+      masters the method needs (R-10, S-7). *(done — `calibration.build_masters`
+      + `METHOD_NEEDS`; `build_master` honours the per-master combine mode.)*
 - [ ] Frame calibration ordering (subtract masters per method → optional flat-field
       → per-frame `cut`), with flat-fielding behind an optional `paths.flats` switch
       (R-14, S-8).
@@ -98,32 +100,43 @@ science/correctness pass.
       baseline fit** for the out-of-transit airmass slope (HAT-P-19 b); retire the
       fixed "first 20 / middle 20 / last 20" windows and `x_ax_loc` tick indices
       (R-13, S-16, S-23).
-- [ ] Derived parameters `R_p` / ρ / `i` (+ max inclination) with Gaussian error
+- [x] Derived parameters `R_p` / ρ / `i` (+ max inclination) with Gaussian error
       propagation; document the exact SI inclination formula and its derivation in
-      the `planet.py` docstring (R-13, R-25, S-17).
+      the `planet.py` docstring (R-13, R-25, S-17). *(done — `planet.compute`
+      returns all params + errors; the SI inclination relation and its `1e10`
+      scale are documented in the module docstring.)*
 - [ ] Weighted-ensemble differential comparison (Broeg-style): artificial comparison
       star, baseline-only weights, iterative rejection, guarded N=1 passthrough;
       keep per-calibrator diagnostic ratios and record used/rejected membership
       (R-15, S-15, ADR-0005).
-- [ ] Automatic drift tracking via whole-frame **phase cross-correlation**
+- [x] Automatic drift tracking via whole-frame **phase cross-correlation**
       (`skimage.registration`), one global `(dx, dy)` per frame + per-star centroid
       refinement; keep manual `manual_shifts` as an explicit fallback
-      (R-16, S-12, ADR-0004).
-- [ ] CLI: `exotransit reduce CONFIG.toml` with overrides
+      (R-16, S-12, ADR-0004). *(done — `tracking.auto_shifts` registers each light
+      vs `reference_frame` via `phase_cross_correlation`; per-star centroiding stays
+      in photometry; `pipeline.run` dispatches on `mode`; manual/off unchanged.
+      Test `test_auto_shift_recovers_injected_offset` recovers an injected drift
+      < 0.1 px.)*
+- [x] CLI: `exotransit reduce CONFIG.toml` with overrides
       (`--reduction`/`--aperture`/`--output-dir`/`--log-level`/`--no-figures`/
       `--dry-run`) and `exotransit validate CONFIG.toml`; defined exit codes
-      (0/2/3/4/1) (R-9, S-6).
-- [ ] Structured `logging` on the `exotransit.*` hierarchy replacing `print`s
+      (0/2/3/4/1) (R-9, S-6). *(done — `cli.main`; all overrides + exit codes
+      0/1/2/3/4 present.)*
+- [x] Structured `logging` on the `exotransit.*` hierarchy replacing `print`s
       (including the broken `logger.info('Min:', value)` positional-arg calls);
       handlers configured only in `cli.main()` / `pipeline.run()`; level from
-      config, overridable by `--log-level` (R-17, S-24).
-- [ ] Machine-readable outputs: extended per-frame **CSV** (BJD_TDB, quality flags,
+      config, overridable by `--log-level` (R-17, S-24). *(done — module loggers on
+      `exotransit.*`; `_configure_logging` in `cli.main`; only CLI result lines
+      remain as stdout `print`s.)*
+- [x] Machine-readable outputs: extended per-frame **CSV** (BJD_TDB, quality flags,
       ensemble membership, ratios) + **JSON sidecar** (provenance, config SHA-256,
       input file list, method, derived params with uncertainties) — together
       sufficient to regenerate any figure (R-23, R-24, S-21, S-22, ADR-0006).
-- [ ] Make figure generation optional (`output.figures`) and non-fatal — a plotting
+      *(done — `outputs.write_csv` / `write_json`; verified in [`RUN_REPORT.md`](RUN_REPORT.md) §4.)*
+- [x] Make figure generation optional (`output.figures`) and non-fatal — a plotting
       exception logs a warning and never aborts a run after fluxes are computed
-      (R-19, S-23).
+      (R-19, S-23). *(done — `pipeline.run` guards `plots.render`; `output.figures`
+      gate defaults off.)*
 - [ ] CI (GitHub Actions) on push + PR: `uv sync` → `ruff check` + `ruff format
       --check` → `mypy exotransit/` (non-strict) → `pytest`, on a Python 3.13 +
       latest matrix (R-22, NFR-2, S-27, ADR-0007).
