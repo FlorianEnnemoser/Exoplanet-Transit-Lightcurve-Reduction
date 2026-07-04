@@ -230,6 +230,14 @@ export default function StarsStep(props: {
       </div>
       {/* timeline scrubber (W-14): native range input = free keyboard stepping */}
       <div className="timeline">
+        <button
+          className="ghost step"
+          aria-label="previous frame"
+          disabled={index <= 0}
+          onClick={() => setIndex(Math.max(index - 1, 0))}
+        >
+          −
+        </button>
         <input
           type="range"
           min={0}
@@ -238,6 +246,14 @@ export default function StarsStep(props: {
           aria-label="frame timeline"
           onChange={(e) => setIndex(Number(e.target.value))}
         />
+        <button
+          className="ghost step"
+          aria-label="next frame"
+          disabled={index >= nFrames - 1}
+          onClick={() => setIndex(Math.min(index + 1, nFrames - 1))}
+        >
+          +
+        </button>
         <span className="stamp">
           frame {index + 1}/{nFrames}
           {stamp ? ` · ${stamp}` : ''}

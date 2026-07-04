@@ -116,6 +116,7 @@ th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size
 .viewer-bar .spacer { flex: 1; }
 .timeline { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem; }
 .timeline input[type='range'] { flex: 1; accent-color: var(--nasa-red); }
+.timeline .step { min-width: 2rem; padding: 0.15rem 0; font-size: 1.1rem; line-height: 1; flex: 0 0 auto; }
 .timeline .stamp { font-variant-numeric: tabular-nums; font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
 
 .star-list { list-style: none; padding: 0; margin: 0.75rem 0 0; }

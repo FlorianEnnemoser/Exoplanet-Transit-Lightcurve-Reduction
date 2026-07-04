@@ -277,3 +277,15 @@ are written so they can be dropped cleanly if rejected.
 - [ ] Document the reduction physics (planet radius / density / inclination) and the
       pipeline stages end to end in `README.md` / a project wiki once modules land
       (R-25, S-17).
+
+
+---
+
+### Bugfixes & needed Features
+
+- [ ] Transduration in "5 System" should be calculated by predicted ingress / egress
+- [ ] by given a Target name there should be a button that allows to query from a webpage the needed parameters for Stellar Radius, etc
+- [ ] 4 - Parameters: Aperture Radius, Annulus, FWHM, half-width should be displayed live in the "3 - STARS" section (also editable), as you dont see how large the area is.
+- [ ] 4 - Parameters: For selected Science Target and Calibrators display the Integrated Flux by diameter (so x-axis is diameter of the selection, y is the total sum of light that occurs at this radius). Display this as subplots besides the real image.
+- [ ] 4 - Parameters: Counting of Reference Frame should start with 1 (and also select the first image then), same as in the "3- Stars" timeline scrubber.
+- [ ] add section "7 - PREVIEW" which shows a plot of the tracked target (like in "3-Stars") and the calculated photometric value in a subplot below, so the lightcurve can easily be seen
