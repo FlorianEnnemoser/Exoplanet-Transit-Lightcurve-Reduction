@@ -29,7 +29,7 @@ relevant forces:
 - The config is **hand-edited by observers**, so comments and readability matter.
 - Values are mostly **typed scalars and short arrays** (paths, radii, `[x, y]`
   coordinates, system parameters), not deeply nested structures.
-- The target runtime is a **current Python (≥ 3.11)**, whose standard library ships
+- The target runtime is a **current Python (≥ 3.13)**, whose standard library ships
   `tomllib` for reading TOML — no dependency needed to parse.
 - The format should have **low ambiguity** (YAML's implicit typing and significant
   whitespace are a known source of surprises; JSON forbids comments).
@@ -42,7 +42,8 @@ and re-loads.
 
 ### Consequences
 
-- `+` Read with the standard-library `tomllib` on Python ≥ 3.11 — zero parse dependency.
+- `+` Read with the standard-library `tomllib` on Python ≥ 3.13 — zero parse dependency,
+  no `tomli` backport needed.
 - `+` Comments are supported (unlike JSON), aiding self-documenting target configs.
 - `+` Explicit, unambiguous typing and no significant-whitespace pitfalls (vs YAML).
 - `+` Maps cleanly onto the flat/lightly-nested parameter groups this pipeline needs.
@@ -76,14 +77,14 @@ relevant forces:
   (R-22) matter.
 - Reproducibility wants a **lockfile**; fast, deterministic installs keep CI and
   onboarding cheap.
-- The runtime target is a currently-supported Python (≥ 3.10, NFR-3), which
+- The runtime target is a currently-supported Python (≥ 3.13, NFR-3), which
   should be easy to provision.
 
 ### Decision
 
 Use **`uv`** as the project and dependency manager, with a single
 **`pyproject.toml`** manifest as the source of truth: PEP 621 `[project]`
-metadata, constrained dependencies, `requires-python = ">=3.10"` (NFR-3), a
+metadata, constrained dependencies, `requires-python = ">=3.13"` (NFR-3), a
 committed **`uv.lock`** for reproducibility, development tools (`pytest`, `ruff`,
 `mypy`) declared as a dependency group, and the console entry point via
 `[project.scripts]` (R-5). No separate `requirements.txt`.

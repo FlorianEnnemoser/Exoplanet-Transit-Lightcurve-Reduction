@@ -33,5 +33,5 @@ line-length = 100
 extend-select = ["I"] # import sorting
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.13"
 ignore_missing_imports = true

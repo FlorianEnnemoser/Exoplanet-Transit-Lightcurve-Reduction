@@ -93,7 +93,7 @@ def measure_star(frames: list[FrameMeta], masters: MasterFrames,
 **Traces:** R-4, R-5, NFR-3, ADR-0002
 
 - Single `pyproject.toml` with PEP 621 `[project]` metadata,
-  `requires-python = ">=3.10"`, constrained runtime dependencies (`numpy`,
+  `requires-python = ">=3.13"`, constrained runtime dependencies (`numpy`,
   `matplotlib`, `astropy`, `photutils`, `scikit-image` for ADR-0004,
   `tomli-w` for config writing per ADR-0001), and a committed `uv.lock`.
 - Dev tools (`pytest`, `ruff`, `mypy`) live in a `[dependency-groups]` dev
@@ -630,7 +630,7 @@ determinism helps:
 - GitHub Actions on push + PR: `uv sync` → `ruff check` + `ruff format
   --check` → `mypy exotransit/` (non-strict) → `pytest`.
 - Ruff configured in `pyproject.toml`; its version pinned via `uv.lock`.
-- Matrix: the oldest supported (3.10) and latest stable Python.
+- Matrix: the oldest supported (3.13) and latest stable Python.
 
 ## 12. Non-functional
 
@@ -642,7 +642,7 @@ determinism helps:
   the legacy script by more than ~20 % (auto-tracking included); measured on
   the regression fixture in CI as a soft (logged, non-failing) benchmark.
 - Public functions carry type hints; `mypy` non-strict passes (CI-gated).
-- Python ≥ 3.10; no OS-specific paths (use `pathlib`).
+- Python ≥ 3.13; no OS-specific paths (use `pathlib`).
 
 ---
 

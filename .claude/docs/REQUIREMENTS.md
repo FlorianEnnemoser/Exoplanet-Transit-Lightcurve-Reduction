@@ -147,7 +147,7 @@ reproduce catalogue values within uncertainty?" is the regression gate.
 - **NFR-1.** No change **SHOULD** increase single-target wall-clock runtime by more
   than ~20% versus the current script on the same data.
 - **NFR-2.** Public APIs **SHOULD** carry type hints and pass `mypy` in non-strict mode.
-- **NFR-3.** The package **MUST** run on a currently-supported Python (≥ 3.10).
+- **NFR-3.** The package **MUST** run on a currently-supported Python (≥ 3.13).
 
 ---
 

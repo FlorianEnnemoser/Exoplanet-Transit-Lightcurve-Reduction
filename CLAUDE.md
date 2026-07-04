@@ -39,19 +39,7 @@ A ground-based **differential aperture-photometry** pipeline for transiting hot 
 
 `src/exoplanet_lightcurve/ExoplanetLightcurve.py` (procedural pipeline, single entry point) · `src/exoplanet_lightcurve/exo_input_values.py` (configuration as code) · `pyproject.toml` (`uv`-managed packaging/deps) · `tests/` (placeholder, no tests yet) · `README.md` · `LICENSE` (GPL v3) · `CLAUDE.md` · `.claude/docs/{REQUIREMENTS,ADR,SPECS,TODO}.md` (architecture decisions; config format = TOML per ADR-0001) — see Documentation map above. Data dirs are not versioned; created on demand from config paths. WASP-52 b layout: `_WASP52b/{WASP52b,Dark,Bias}/` (inputs), `_WASP52b/images/` (PNG outputs).
 
-## 4. Pipeline stages (`uv run python -m exoplanet_lightcurve.ExoplanetLightcurve`)
-
-No `__main__` guard — **importing runs the full reduction**. Stages:
-
-1. Logger init (`:21`); missing data dirs auto-created.
-2. **Master dark** — mean (`combo_master_dark==1`) or median (`==2`) combine (`:67`); **master bias** — mean (`:99`). Saved as PNGs.
-3. **`fluxtarget()`** (`:117`), per star (science + 2 calibrators). Per frame: calibrate per selected mode (`:128`) → crop a square window at the star's DS9-picked coords (`:142`) → optional pedestal/`sigma_clip` (`:184`) → `DAOStarFinder` detection vs `sigma_clipped_stats` background (`:202`) → `CircularAperture` + `CircularAnnulus` photometry (`:212`) → local sky subtraction `residual = aperture_sum − annulus_mean×aperture_area` (`:223`) → **manual drift shift** at frame indices `i` by `shift_x/shift_y` (`:244`). Defaults: aperture 4 px, annulus 6/8 px (≈3·FWHM ⇒ ~90% of light).
-4. **Differential curve** (`:319`+): read `TIME-OBS` header (`:350`), optional CSV (`:357`), form ratios (`:370`).
-5. **Transit depth** (`:386`): median of first/last 20 (baseline) vs central 20 (in-transit); depth = out-of-transit baseline − in-transit median.
-6. **Planet parameters** (`:431`): depth→mag, `R_p` (`:440`), density (`:447`), inclination + max inclination (`:453`), printed to stdout.
-7. **Plots** (`:469`+): `sci-cal1`, `sci-cal2`, optional delta plots, transit markers.
-
-## 5. Reduction methods (config flags) & finding
+## 4. Reduction methods (config flags) & finding
 
 | Method | Flag(s) | Operation |
 |--------|---------|-----------|
@@ -63,11 +51,11 @@ No `__main__` guard — **importing runs the full reduction**. Stages:
 
 Flags are **mutually exclusive** — enable exactly one (first matching branch wins). **Finding:** the *standard (dark)* reduction is most accurate (matches NASA Archive/ETD: WASP-52 b R_p≈1.15 R_Jup, ρ≈400 kg/m³, i≈87.3°); **bias+median inflated R_p by >0.1 R_Jup and is unusable**. Acceptance gate for any change: *does the standard branch still reproduce catalogue values?*
 
-## 6. Configuration & run (`exo_input_values.py`)
+## 5. Configuration & run (`exo_input_values.py`)
 
 Configuration *as code*, imported as a namespace. Groups: paths; star names & `[x,y]` coords + `pix_around_star`; `combo_master_*`; reduction flags (§5); detection/photometry (`background_sigma`, `fwhm`, `threshold`, `aperture`, `annulus`, `methods`); manual tracking (`i`, `shift_x`, `shift_y`); transit window; CSV I/O; system params (`rstar`,`e_rstar`,`a`,`P`,`m_planet`,`e_m_planet`,`trandur`); physical constants (below "DO NOT EDIT"). **Switch target** by commenting out the active block and uncommenting another (WASP-52 b active; HAT-P-19 b / TrES-5 b / KELT-16 b provided). **Run:** populate input dirs with FITS frames, edit config, then `uv run python -m exoplanet_lightcurve.ExoplanetLightcurve` → results CSV, PNG figures, `exo_console.log`, params on stdout. Deps pinned in `pyproject.toml`: `numpy`, `matplotlib`, `astropy`, `photutils` (legacy versions, see §7).
 
-## 7. Caveats
+## 6. Caveats
 
 - **Runs on import** (no `main()` guard) — never import for introspection; **single active flag** (multiple mutually-exclusive flags → undefined); **fixed 3-star model** hard-wired in MAIN.
 - **Manual drift tracking is the principal limitation**: crop windows shifted by hand via `i`/`shift_x`/`shift_y`, re-tuned per dataset. KELT-16 b failed when out-of-focus early frames made `DAOStarFinder` lock onto background.

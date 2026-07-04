@@ -32,34 +32,34 @@ science/correctness pass.
 
 ### P0 — Foundation (unblocks everything)
 
-- [ ] Scaffold the installable `exotransit/` package per the S-1 layout
+- [x] Scaffold the installable `exotransit/` package per the S-1 layout
       (`config`, `io_fits`, `calibration`, `tracking`, `photometry`, `timebase`,
       `lightcurve`, `planet`, `outputs`, `plots`, `pipeline`, `cli`). Importing any
       module MUST NOT read files, create dirs, write output, or configure logging —
       all execution starts from `pipeline.run()` / the CLI (R-1, R-2, S-1).
-- [ ] Add `pyproject.toml` (PEP 621) + committed `uv.lock`, `requires-python
-      >=3.10`, constrained deps (`numpy`, `matplotlib`, `astropy`, `photutils`,
+- [x] Add `pyproject.toml` (PEP 621) + committed `uv.lock`, `requires-python
+      >=3.13`, constrained deps (`numpy`, `matplotlib`, `astropy`, `photutils`,
       `scikit-image`, `tomli-w`), a `[dependency-groups]` dev group
       (`pytest`, `ruff`, `mypy`), and the `exotransit` console entry point; keep
       `pip install .` working (R-4, R-5, S-3, ADR-0002).
-- [ ] Port the legacy ~2018 API to current `photutils`/`astropy`: `iters=` →
+- [x] Port the legacy ~2018 API to current `photutils`/`astropy`: `iters=` →
       `maxiters=`; `.area()` method → `.area` property; `DAOStarFinder(...)(image)`
       call pattern; corrected import paths; `np.transpose([x, y])` position arrays;
       explicit masked-array (`.filled(np.nan)`) policy. **Must reproduce the
       acceptance invariant — this is the port gate** (R-10, S-10).
-- [ ] Externalise config to **TOML** (one file per target): full schema, defaults,
+- [x] Externalise config to **TOML** (one file per target): full schema, defaults,
       and `config.load(path) -> Config` validation that fails fast with a
       `ConfigError` naming the offending field/value/expectation. Collapse the five
       mutually-exclusive reduction flags into `reduction.method` + `reduction.cut`
       so illegal combinations are unrepresentable. Ship
       `configs/{wasp52b,hatp19b,tres5b}.toml` from the commented blocks in
       `exo_input_values.py` (R-6, R-7, R-8, R-15, S-4, S-5, ADR-0001).
-- [ ] Detection guard: select the detected source nearest the window centre; flag
+- [x] Detection guard: select the detected source nearest the window centre; flag
       `NO_SOURCE` / `OFF_CENTER` / `AMBIGUOUS` (and `SATURATED` /
       `REGISTRATION_FAILED`) with per-frame quality flags instead of silently
       indexing `sources[0]`; abort with exit 4 if > 50 % of science frames are
       flagged (R-11, S-11, S-13).
-- [ ] Validate inputs at discovery (`io_fits.discover`): required dirs exist and are
+- [x] Validate inputs at discovery (`io_fits.discover`): required dirs exist and are
       non-empty (**no** auto-creation of input dirs — only `paths.output` is
       created), frames within a category share dimensions, required headers
       (`DATE-OBS`/`TIME-OBS`, `EXPTIME`) present; fail with a `DataError` listing
@@ -68,7 +68,7 @@ science/correctness pass.
 
 ### P0 — Testing gate
 
-- [ ] `pytest` unit tests per the S-25 table: `config` (each validation rule),
+- [x] `pytest` unit tests per the S-25 table: `config` (each validation rule),
       `calibration` (combine + reduction arithmetic + flat normalisation),
       `photometry` (hand-computed sky subtraction + detection-guard paths),
       `tracking` (recover injected shift < 0.1 px), `timebase` (BJD_TDB < 1 s vs
@@ -128,7 +128,7 @@ science/correctness pass.
       exception logs a warning and never aborts a run after fluxes are computed
       (R-19, S-23).
 - [ ] CI (GitHub Actions) on push + PR: `uv sync` → `ruff check` + `ruff format
-      --check` → `mypy exotransit/` (non-strict) → `pytest`, on a Python 3.10 +
+      --check` → `mypy exotransit/` (non-strict) → `pytest`, on a Python 3.13 +
       latest matrix (R-22, NFR-2, S-27, ADR-0007).
 - [ ] NumPy-style docstrings on all public functions; type hints passing `mypy`
       non-strict; update `README.md` with install + run instructions once packaging
