@@ -202,6 +202,41 @@ from a directory of FITS frames to a light curve with minimal typing.
   side-by-side (mirroring the thesis' comparison and the existing `option_compare`
   CSV workflow) and download the results CSV.
 
+### User workflow
+
+These describe the *journey* — the order of steps and how the app guides the user —
+rather than individual features. The intended path is: **open data → check it →
+pick stars → set options → enter star/planet facts → review → save/run → see
+results.** The interaction model (a guided step-by-step wizard, with live preview)
+is decided in `ADR.md`, ADR-0011.
+
+- **W-15 (P0) — Guided flow.** The app **MUST** lead the user through the steps in a
+  clear order, always showing which step they are on and what comes next. A first-
+  time user **SHOULD** be able to follow the flow without external instructions.
+- **W-16 (P0) — No half-finished steps.** The user **MUST NOT** be able to advance
+  from a step while its inputs are invalid or incomplete; the *next* / *run* action
+  stays disabled with a plain-language reason (consistent with W-9).
+- **W-17 (P1) — Go back freely.** The user **MUST** be able to return to any earlier
+  completed step and change it **without losing** values already entered in later
+  steps.
+- **W-18 (P1) — Resume later.** The app **SHOULD** save progress so the user can
+  close it and continue from where they stopped (uses the session persistence of
+  W-3).
+- **W-19 (P1) — Sensible defaults.** Each step **SHOULD** arrive pre-filled with safe
+  default values, so a beginner can accept them and move on rather than starting from
+  a blank form.
+- **W-20 (P1) — Fail gently.** A bad input or a failed run **MUST** produce a clear,
+  plain-language message and a way to fix or retry — never a crash or a silent
+  failure (consistent with W-2 and the pipeline's R-18/R-19).
+- **W-21 (P1) — Review before commit.** Before saving the config or launching a run,
+  the app **MUST** show a summary of every chosen value for the user to confirm.
+- **W-22 (P1) — Live preview tuning.** Once a first result exists, changing a
+  photometry or reduction parameter (e.g. aperture radius, reduction method)
+  **SHOULD** update a **preview** of the affected result — the frame overlay and/or
+  the light curve — quickly, so the user tunes by *seeing the effect*. Previews
+  **MAY** use down-sampled data for speed (W-NFR-2); the final saved/run result uses
+  full resolution (W-NFR-3).
+
 ### Non-functional (web app)
 
 - **W-NFR-1 (P0, usability).** Reaching a runnable configuration from a fresh

@@ -386,3 +386,55 @@ click-to-pick, overlays, and the timeline synced to the light-curve view.
   zoom/pan/scaling UI ourselves.
 - `−` Tile round-trips need caching/pre-fetch to feel instant (mitigate: pre-cache
   adjacent frames, as W-14 suggests).
+---
+
+## ADR-0011 — Web app interaction model: guided wizard with live preview
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` W-15–W-22, W-6, W-9, W-NFR-1, W-NFR-2
+
+### Context
+
+The web app's primary user is a beginner reducing one transit at a time who wants
+minimal typing (W-NFR-1). The interface can be shaped in three broad ways:
+
+- **Guided wizard** — leads the user through the steps one at a time (open data →
+  check → pick stars → set options → enter facts → review → save/run → results).
+- **Free-form page** — everything on a single screen, done in any order. Fast for an
+  expert; easy for a beginner to get lost or skip a step.
+- **Node-graph editor** — a visual canvas of boxes ("nodes"), one per processing
+  step, wired together; the user clicks a node to tune its settings and watches the
+  result update live (like the node editors in photo/video tools). Powerful and a
+  natural fit for live tuning, but the most to build and the most concepts for a
+  newcomer to learn.
+
+A strongly desired quality — raised by the maintainer — is **live feedback**:
+change a parameter and immediately see the effect on the result.
+
+### Decision
+
+Use a **guided step-by-step wizard** as the default and primary interface,
+implementing the User-workflow requirements (W-15–W-22). Build **live preview**
+into it (W-22): once a first result exists, adjusting a photometry/reduction
+parameter updates a quick preview (frame overlay and/or light curve). Record the
+**node-graph editor** as a considered option, **deferred** as an optional future
+"advanced mode" rather than the first interface.
+
+### Consequences
+
+- `+` Beginner-friendly, linear path; hard to get lost or skip a required step
+  (W-15/W-16); directly satisfies the "few minutes, clicks only" target (W-NFR-1).
+- `+` Live preview delivers the "change a knob, see the effect" benefit the
+  maintainer wants **without** the cost of a full node-graph editor.
+- `+` Wizard steps map cleanly onto the milestones (M1–M3) and onto the backend
+  endpoints (ADR-0009), keeping frontend and backend aligned.
+- `−` A fixed wizard can feel restrictive to an expert doing many reductions
+  (mitigate: allow jumping between already-completed steps, W-17; an advanced/
+  free-form mode can be added later).
+- `−` Live preview needs fast, possibly down-sampled recomputation (W-NFR-2) and
+  careful state handling; previews stay approximate while the final saved/run
+  result uses full resolution (W-NFR-3).
+- `−` The node-graph editor is deferred, not adopted: it is powerful and excellent
+  for live tuning, but significantly larger to build and steeper for a beginner.
+  Revisit only if a power-user "advanced mode" is warranted; the wizard + live
+  preview captures most of its value first.
