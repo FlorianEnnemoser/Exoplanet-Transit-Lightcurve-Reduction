@@ -12,6 +12,7 @@ import {
   systemProblems,
 } from './steps'
 import StarsStep from './StarsStep'
+import PreviewStep from './PreviewStep'
 
 const STEPS = [
   { id: 'data', label: 'Data' },
@@ -20,6 +21,7 @@ const STEPS = [
   { id: 'params', label: 'Parameters' },
   { id: 'system', label: 'System' },
   { id: 'review', label: 'Review' },
+  { id: 'preview', label: 'Preview' },
   { id: 'export', label: 'Export' },
 ] as const
 
@@ -88,6 +90,8 @@ export default function App() {
       case 'review':
         if (!verdict) return 'Validation pending…'
         return verdict.valid ? null : verdict.error
+      case 'preview':
+        return null // informational; never blocks advancing to export
       case 'export':
         return null
     }
@@ -149,6 +153,7 @@ export default function App() {
         {id === 'params' && <ParamsStep state={state} onChange={setState} />}
         {id === 'system' && <SystemStep state={state} onChange={setState} />}
         {id === 'review' && <ReviewStep state={state} verdict={verdict} />}
+        {id === 'preview' && <PreviewStep sid={sid} state={state} summary={summary} />}
         {id === 'export' && <ExportStep sid={sid} state={state} verdict={verdict} />}
       </section>
 

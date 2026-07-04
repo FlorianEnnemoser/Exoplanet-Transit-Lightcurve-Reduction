@@ -439,3 +439,81 @@ parameter updates a quick preview (frame overlay and/or light curve). Record the
   for live tuning, but significantly larger to build and steeper for a beginner.
   Revisit only if a power-user "advanced mode" is warranted; the wizard + live
   preview captures most of its value first.
+
+---
+
+## ADR-0012 — Web preview: in-process background job reusing the pipeline stages
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` W-12, W-22; ADR-0009, ADR-0011
+
+### Context
+
+The Preview step (wizard step 7) runs the reduction far enough to show the tracked
+target and its differential light curve **before** the user commits to a full run.
+Photometering a whole night (~150–300 frames) takes seconds to a minute, so it
+cannot block the request thread, and the wizard needs progress feedback. Options:
+
+- **Synchronous request** — one `POST` that returns when done. Simplest, but a
+  multi-second hang with no progress and a fragile long-lived HTTP connection.
+- **In-process background thread + poll** — start a job, poll status/progress.
+- **External task queue** (Celery/RQ + broker) — robust, but a heavy dependency and
+  deployment burden for a local single-user tool (W-NFR-4/5).
+
+A second question is *what* the preview computes: re-implementing the reduction
+would fork the science (rejected on sight, ADR-0009's single-source-of-truth rule).
+
+### Decision
+
+Run the preview as an **in-process background thread** (`webapp/server/preview.py`)
+with a module-level job store keyed by session id, exposed as
+`POST /api/sessions/{sid}/preview` (start, idempotent while running) and
+`GET …/preview` (status/progress/result). The worker **reuses the
+`exotransit.pipeline.run` stage functions** (`config.load → io_fits.discover →
+calibration.build_masters → tracking → photometry.measure_star → lightcurve.differential`)
+up to the light curve only — no `planet.compute`, no file outputs — and reports
+progress per measured star.
+
+### Consequences
+
+- `+` No new dependency (stdlib `threading`); reuses every science stage, so the
+  preview and a full run agree by construction (W-22, ADR-0009).
+- `+` Non-blocking with real progress; the invariant-pinned `pipeline.run` is left
+  untouched (the ~10-line median/linear branch is deliberately duplicated).
+- `−` The job store is per-process and lost on restart, and there is no cross-process
+  scaling — acceptable for the local single-user tool; revisit with a real queue only
+  if multi-user/hosted deployment is ever wanted.
+- `−` Progress granularity is per-star, not per-frame (a per-frame callback into
+  `measure_star` is the noted upgrade path).
+
+---
+
+## ADR-0013 — NASA Exoplanet Archive lookup over stdlib TAP (no `astroquery`)
+
+- **Status:** Accepted
+- **Relates to:** `REQUIREMENTS.md` W-10, W-20
+
+### Context
+
+The System step offers a "look up by target name" button that fills stellar/planet
+parameters from the NASA Exoplanet Archive (W-10), degrading gently on failure
+(W-20). The canonical client library is **`astroquery`**, but it is a large
+dependency (pulls in much of the astropy affiliated stack) for a single query, and
+the web feature only needs one composite-parameter row.
+
+### Decision
+
+Query the Archive's **TAP sync service** directly over stdlib `urllib`
+(`webapp/server/archive.py`), selecting the needed columns from the `pscomppars`
+composite table by exact `pl_name`, and map them onto the `[system]` fields (with
+`pl_trandur` hours → minutes). Any network/parse error or empty result returns an
+empty mapping plus a human note — never an exception (W-20).
+
+### Consequences
+
+- `+` No new dependency; one small, self-contained module and endpoint.
+- `+` Failures are non-fatal and manual entry always remains available (W-20).
+- `−` Exact-name match only (no fuzzy resolver/name aliasing that `astroquery` would
+  provide) — the noted upgrade path if name-matching friction shows up.
+- `−` Couples to the Archive's TAP schema/column names; a schema change needs a code
+  update (isolated to `archive.py`).

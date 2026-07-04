@@ -146,3 +146,18 @@ button.ghost.link {
 /* compact live photometry-region editors in the Stars step (294) */
 .region-fields { margin: 0.25rem 0 0.5rem; }
 .region-fields label.field { margin-bottom: 0.4rem; }
+
+/* Stars step: viewer beside the curve-of-growth panel (295) */
+.viewer-split { display: flex; gap: 1rem; align-items: flex-start; }
+.viewer-main { flex: 1 1 auto; min-width: 0; }
+.growth-panel { flex: 0 0 220px; }
+.growth-panel h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.35rem; }
+.growth-item { margin-bottom: 0.6rem; }
+.growth-name { font-size: 0.8rem; }
+.growth-svg { display: block; width: 100%; height: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+@media (max-width: 780px) { .viewer-split { flex-direction: column; } .growth-panel { flex-basis: auto; width: 100%; } }
+
+/* preview step: progress bar + light-curve plot (297) */
+.progress { height: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.progress-bar { height: 100%; background: var(--nasa-blue); transition: width 0.3s; }
+.lc-svg { display: block; width: 100%; height: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }

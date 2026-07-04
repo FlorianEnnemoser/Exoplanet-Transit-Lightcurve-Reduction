@@ -12,7 +12,7 @@ from astropy.io import fits
 from fastapi.testclient import TestClient
 
 from exotransit.config import load
-from webapp.server import configgen, sessions
+from webapp.server import archive, configgen, growth, preview, sessions
 from webapp.server.main import app
 
 
@@ -136,3 +136,89 @@ def test_frame_png_and_bounds(client, data_dir):
 
 def test_unknown_session_is_404(client):
     assert client.get("/api/sessions/not-a-uuid/summary").status_code == 404
+
+
+# ---- 293 · NASA Exoplanet Archive lookup ------------------------------------
+
+
+def test_archive_lookup_maps_and_converts(monkeypatch):
+    row = {
+        "st_rad": 0.79,
+        "st_raderr1": 0.02,
+        "pl_orbsmax": 0.0272,
+        "pl_orbper": 1.74978,
+        "pl_bmassj": 0.46,
+        "pl_bmassjerr1": -0.02,  # Archive lower error is negative
+        "pl_trandur": 1.8,  # hours
+        "rastr": "23h13m58.76s",
+        "decstr": "+08d45m40.6s",
+    }
+    monkeypatch.setattr(archive, "_query", lambda name: [row])
+    r = archive.lookup("WASP-52 b")
+    assert r["found"]
+    v = r["values"]
+    assert v["r_star"] == 0.79
+    assert v["transit_duration"] == pytest.approx(108.0)  # 1.8 h × 60
+    assert v["m_planet_err"] == pytest.approx(0.02)  # abs of -0.02
+    assert v["ra"].startswith("23h")
+
+
+def test_archive_lookup_drops_nulls(monkeypatch):
+    monkeypatch.setattr(archive, "_query", lambda name: [{"st_rad": 1.0, "pl_orbper": None}])
+    v = archive.lookup("X b")["values"]
+    assert v == {"r_star": 1.0}  # null column omitted entirely
+
+
+def test_archive_lookup_degrades_on_error(monkeypatch):
+    import urllib.error
+
+    def boom(name):
+        raise urllib.error.URLError("no network")
+
+    monkeypatch.setattr(archive, "_query", boom)
+    r = archive.lookup("WASP-52 b")
+    assert not r["found"] and r["values"] == {}
+
+
+# ---- 295 · curve of growth --------------------------------------------------
+
+
+def test_growth_curve_is_background_subtracted_and_plateaus(tmp_path):
+    yy, xx = np.mgrid[0:60, 0:60]
+    total = 10000.0
+    sigma = 2.0
+    img = 100.0 + (total / (2 * np.pi * sigma**2)) * np.exp(
+        -((xx - 30) ** 2 + (yy - 30) ** 2) / (2 * sigma**2)
+    )
+    path = tmp_path / "star.fits"
+    fits.PrimaryHDU(img.astype(np.float32)).writeto(path)
+    phot = {"aperture_radius": 4.0, "annulus_inner": 8.0, "annulus_outer": 12.0}
+    c = growth.curve(str(path), {"name": "S", "x": 30, "y": 30}, phot, half_width=15)
+    flux = c["flux"]
+    assert flux[-1] > flux[0]  # grows with radius
+    assert flux[-1] == pytest.approx(total, rel=0.1)  # sky removed -> plateaus at the injected flux
+
+
+# ---- 297 · preview background job -------------------------------------------
+
+
+def test_preview_job_runs_to_completion(client, data_dir, tmp_path):
+    import time
+
+    sid = client.post("/api/sessions", json={"lights": str(data_dir)}).json()["id"]
+    state = _valid_state(data_dir, tmp_path / "out")
+    state["transit"]["baseline_fit"] = "median"  # avoid the ingress/egress window path
+    client.put(f"/api/sessions/{sid}/config", json=state)
+
+    assert client.post(f"/api/sessions/{sid}/preview").json()["status"] in ("running", "done")
+    job = {}
+    for _ in range(200):
+        job = client.get(f"/api/sessions/{sid}/preview").json()
+        if job["status"] != "running":
+            break
+        time.sleep(0.05)
+    assert job["status"] == "done", job.get("error")
+    res = job["result"]
+    assert len(res["ensemble"]) == 3
+    assert len(res["shifts"]) == 3
+    preview._JOBS.clear()  # don't leak the job across tests

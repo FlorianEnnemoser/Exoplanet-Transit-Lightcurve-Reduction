@@ -283,6 +283,19 @@ export function SystemStep(props: { state: WizardState; onChange: Patch }) {
   const setTransit = (k: string, v: string) =>
     onChange({ ...state, transit: { ...state.transit, [k]: v } })
 
+  // 293: fill star/planet params from the NASA Exoplanet Archive by target name.
+  const [lookupNote, setLookupNote] = useState('')
+  const runLookup = async () => {
+    setLookupNote('Looking up…')
+    try {
+      const r = await api.lookup(state.observation.target)
+      if (r.found) onChange({ ...state, system: { ...y, ...r.values } })
+      setLookupNote(r.note)
+    } catch (e) {
+      setLookupNote((e as Error).message)
+    }
+  }
+
   // 292: total transit duration follows the predicted ingress/egress window.
   const derivedDuration = windowMinutes(state.transit.predicted_start, state.transit.predicted_end)
   useEffect(() => {
@@ -297,6 +310,12 @@ export function SystemStep(props: { state: WizardState; onChange: Patch }) {
         <Text label="Target name" value={state.observation.target} onChange={(v) => setObs('target', v)} placeholder="WASP-52 b" />
         <Text label="Case name (filenames)" value={state.observation.casename} onChange={(v) => setObs('casename', v)} />
       </div>
+      <p>
+        <button type="button" className="ghost" disabled={!state.observation.target} onClick={() => void runLookup()}>
+          Look up on NASA Exoplanet Archive
+        </button>
+        {lookupNote && <span className="muted" style={{ marginLeft: '0.75rem' }}>{lookupNote}</span>}
+      </p>
       <h2>Star & planet (NASA Exoplanet Archive values)</h2>
       <div className="grid">
         <Num label="Stellar radius [R☉]" value={y.r_star} invalid={y.r_star === null} onChange={(v) => setY('r_star', v)} />

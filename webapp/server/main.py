@@ -22,7 +22,7 @@ from pydantic import BaseModel
 
 from exotransit import io_fits
 
-from . import configgen, rendering, sessions
+from . import archive, configgen, growth, preview, rendering, sessions
 
 app = FastAPI(title="exotransit web", version="0.1.0")
 # local single-user tool (W-NFR-4); open CORS keeps the Vite dev server happy
@@ -95,6 +95,43 @@ def frame_png(sid: str, index: int, scale: str = "zscale") -> Response:
         media_type="image/png",
         headers={"Cache-Control": "public, max-age=300"},
     )
+
+
+@app.get("/api/sessions/{sid}/frames/{index}/growth")
+def frame_growth(sid: str, index: int) -> dict[str, Any]:
+    """Background-subtracted curve of growth per picked star for one frame (295)."""
+    state = _session(sid)["state"]
+    lights = sessions.light_frames(state)
+    if not 0 <= index < len(lights):
+        raise HTTPException(status_code=404, detail=f"frame index {index} out of range")
+    stars = state["stars"]
+    picks = ([stars["science"]] if stars["science"] else []) + stars["calibrators"]
+    half = int(stars["crop_half_width"])
+    curves = [growth.curve(str(lights[index]), s, state["photometry"], half) for s in picks]
+    return {"stars": curves}
+
+
+@app.get("/api/lookup")
+def lookup(target: str) -> dict[str, Any]:
+    """NASA Exoplanet Archive parameter lookup by planet name (293, W-10/W-20)."""
+    return archive.lookup(target)
+
+
+@app.post("/api/sessions/{sid}/preview")
+def start_preview(sid: str) -> dict[str, Any]:
+    """Start (or report) the background reduction-preview job (297, W-12)."""
+    session = _session(sid)
+    return preview.start(sid, session["state"], sessions.session_dir(sid))
+
+
+@app.get("/api/sessions/{sid}/preview")
+def get_preview(sid: str) -> dict[str, Any]:
+    """Poll the preview job's status/progress/result (297)."""
+    _session(sid)
+    job = preview.status(sid)
+    if job is None:
+        return {"status": "idle", "progress": 0.0, "stage": "", "result": None, "error": None}
+    return job
 
 
 @app.get("/api/sessions/{sid}/config")

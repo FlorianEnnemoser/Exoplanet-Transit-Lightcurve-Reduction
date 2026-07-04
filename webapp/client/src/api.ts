@@ -71,6 +71,38 @@ export interface Verdict {
   toml: string | null
 }
 
+export interface LookupResult {
+  found: boolean
+  values: Partial<WizardState['system']>
+  note: string
+}
+
+export interface GrowthCurve {
+  name: string
+  diameter: number[]
+  flux: (number | null)[]
+  aperture_radius: number
+}
+
+export interface PreviewResult {
+  labels: string[]
+  ensemble: (number | null)[]
+  ratios: Record<string, (number | null)[]>
+  science: { name: string; x: number; y: number }
+  quality: string[]
+  shifts: [number, number][]
+  ingress: number | null
+  egress: number | null
+}
+
+export interface PreviewJob {
+  status: 'idle' | 'running' | 'done' | 'error'
+  progress: number
+  stage: string
+  result: PreviewResult | null
+  error: string | null
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const resp = await fetch(url, init)
   if (!resp.ok) {
@@ -111,6 +143,17 @@ export const api = {
 
   frameUrl: (sid: string, index: number, scale: string) =>
     `/api/sessions/${sid}/frames/${index}/png?scale=${scale}`,
+
+  frameGrowth: (sid: string, index: number) =>
+    request<{ stars: GrowthCurve[] }>(`/api/sessions/${sid}/frames/${index}/growth`),
+
+  lookup: (target: string) =>
+    request<LookupResult>(`/api/lookup?target=${encodeURIComponent(target)}`),
+
+  startPreview: (sid: string) =>
+    request<PreviewJob>(`/api/sessions/${sid}/preview`, { method: 'POST' }),
+
+  getPreview: (sid: string) => request<PreviewJob>(`/api/sessions/${sid}/preview`),
 
   exportUrl: (sid: string) => `/api/sessions/${sid}/config/export`,
 }

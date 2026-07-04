@@ -293,15 +293,27 @@ are written so they can be dropped cleanly if rejected.
       *(done — `SystemStep` auto-fills `transit_duration` from the ingress/egress window
       (`windowMinutes` in `steps.tsx`) but keeps it editable, with a `↻ from window` resync
       button. WASP-52b window = 108 min vs catalogue 110, so the override stays available.)*
-- [ ] by given a Target name there should be a button that allows to query from a webpage the needed parameters for Stellar Radius, etc
+- [x] ~~by given a Target name there should be a button that allows to query from a webpage the needed parameters for Stellar Radius, etc~~
+      *(done — "Look up on NASA Exoplanet Archive" button in `SystemStep` → `GET /api/lookup`
+      → `archive.lookup` queries the Archive TAP `pscomppars` table over stdlib `urllib`
+      (no `astroquery` dep, ADR-0013), fills r_star/a/period/mass/duration/RA/Dec, and degrades
+      gently on failure (W-10/W-20). This lands the M2 backlog item above.)*
 - [x] ~~4 - Parameters: Aperture Radius, Annulus, FWHM, half-width should be displayed live in the "3 - STARS" section (also editable), as you dont see how large the area is.~~
       *(done — `StarsStep` draws aperture (solid) / annulus (dashed) / crop-window (dotted)
       overlays around each picked star, and edits them via a compact field row (shared
       `state.photometry` / `state.stars`, so the Parameters step stays in sync). FWHM is an
       editable field only — it is a detection scale, not an aperture area.)*
-- [ ] 4 - Parameters: For selected Science Target and Calibrators display the Integrated Flux by diameter (so x-axis is diameter of the selection, y is the total sum of light that occurs at this radius). Display this as subplots besides the real image.
+- [x] ~~4 - Parameters: For selected Science Target and Calibrators display the Integrated Flux by diameter (so x-axis is diameter of the selection, y is the total sum of light that occurs at this radius). Display this as subplots besides the real image.~~
+      *(done — `GET /frames/{i}/growth` → `growth.curve` reuses `photutils.profiles.CurveOfGrowth`
+      on the full-res FITS with local-background subtraction so the curve plateaus; `StarsStep`
+      shows one inline-SVG plot per star beside the viewer, marking the current aperture diameter.)*
 - [x] ~~4 - Parameters: Counting of Reference Frame should start with 1 (and also select the first image then), same as in the "3- Stars" timeline scrubber.~~
       *(done — the Reference frame field now displays 1-based to match the Stars scrubber;
       storage stays 0-based as the array index (`tracking.py` clamps it). Default 0 shows "1"
       = the first image.)*
-- [ ] add section "7 - PREVIEW" which shows a plot of the tracked target (like in "3-Stars") and the calculated photometric value in a subplot below, so the lightcurve can easily be seen
+- [x] ~~add section "7 - PREVIEW" which shows a plot of the tracked target (like in "3-Stars") and the calculated photometric value in a subplot below, so the lightcurve can easily be seen~~
+      *(done — new wizard step "7 · Preview" (`PreviewStep`). Backend `preview.py` runs the
+      reduction as an in-process background job (`POST`/`GET /preview`, progress-polled) reusing the
+      pipeline stages up to the light curve (ADR-0012, W-12); the frame viewer was extracted into a
+      shared `FrameViewer` so Preview reuses it read-only with the science aperture tracked per frame,
+      and the differential light curve is drawn as inline SVG below (W-22).)*
