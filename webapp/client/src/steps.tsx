@@ -1,8 +1,24 @@
 // steps.tsx — wizard form steps (W-1/2/8/9/10-lite, W-21). GPL-3.0-or-later.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api, type CategorySummary, type Summary, type Verdict, type WizardState } from './api'
 
 type Patch = (s: WizardState) => void
+
+// Transit total duration (minutes) from the UTC ingress/egress wall-clock strings
+// (HH:MM or HH:MM:SS). null if either is unparseable; +1440 handles a transit that
+// crosses midnight. Used to auto-fill system.transit_duration from the window (292).
+export function windowMinutes(start: string, end: string): number | null {
+  const parse = (s: string): number | null => {
+    const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s.trim())
+    if (!m) return null
+    return Number(m[1]) * 60 + Number(m[2]) + Number(m[3] ?? 0) / 60
+  }
+  const a = parse(start)
+  const b = parse(end)
+  if (a === null || b === null) return null
+  const d = b - a
+  return Math.round(d > 0 ? d : d + 1440)
+}
 
 // ---- shared field helpers --------------------------------------------------
 
@@ -26,7 +42,7 @@ function Text(props: {
   )
 }
 
-function Num(props: {
+export function Num(props: {
   label: string
   value: number | null
   onChange: (v: number | null) => void
@@ -241,7 +257,8 @@ export function ParamsStep(props: { state: WizardState; onChange: Patch }) {
       <h2>Tracking</h2>
       <div className="grid">
         <Select label="Mode" value={state.tracking.mode} options={['auto', 'manual', 'off']} onChange={(v) => setT('mode', v)} />
-        <Num label="Reference frame" value={state.tracking.reference_frame} onChange={(v) => setT('reference_frame', v ?? 0)} />
+        {/* 1-based to match the Stars scrubber (frame N/total); stored 0-based as an index (296) */}
+        <Num label="Reference frame (frame #)" value={state.tracking.reference_frame + 1} onChange={(v) => setT('reference_frame', Math.max(0, (v ?? 1) - 1))} />
       </div>
       {paramsProblems(state).map((m) => (
         <p key={m} className="warn">
@@ -266,6 +283,13 @@ export function SystemStep(props: { state: WizardState; onChange: Patch }) {
   const setTransit = (k: string, v: string) =>
     onChange({ ...state, transit: { ...state.transit, [k]: v } })
 
+  // 292: total transit duration follows the predicted ingress/egress window.
+  const derivedDuration = windowMinutes(state.transit.predicted_start, state.transit.predicted_end)
+  useEffect(() => {
+    // auto-fill once when empty; never clobber a value the user typed
+    if (y.transit_duration === null && derivedDuration !== null) setY('transit_duration', derivedDuration)
+  }, [derivedDuration]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div>
       <h2>Observation</h2>
@@ -281,7 +305,27 @@ export function SystemStep(props: { state: WizardState; onChange: Patch }) {
         <Num label="Period [days]" value={y.period} invalid={y.period === null} onChange={(v) => setY('period', v)} />
         <Num label="Planet mass [M♃]" value={y.m_planet} invalid={y.m_planet === null} onChange={(v) => setY('m_planet', v)} />
         <Num label="Planet mass error" value={y.m_planet_err} onChange={(v) => setY('m_planet_err', v ?? 0)} />
-        <Num label="Transit duration [min]" value={y.transit_duration} invalid={y.transit_duration === null} onChange={(v) => setY('transit_duration', v)} />
+        <label className="field">
+          <span>
+            Transit duration [min]
+            {derivedDuration !== null && derivedDuration !== y.transit_duration && (
+              <button
+                type="button"
+                className="ghost link"
+                onClick={() => setY('transit_duration', derivedDuration)}
+              >
+                ↻ from window: {derivedDuration} min
+              </button>
+            )}
+          </span>
+          <input
+            className={y.transit_duration === null ? 'invalid' : ''}
+            type="number"
+            step="any"
+            value={y.transit_duration ?? ''}
+            onChange={(e) => setY('transit_duration', e.target.value === '' ? null : Number(e.target.value))}
+          />
+        </label>
         <Text label="RA (ICRS)" value={y.ra} invalid={!y.ra} onChange={(v) => setY('ra', v)} placeholder="23h13m58.76s" />
         <Text label="Dec (ICRS)" value={y.dec} invalid={!y.dec} onChange={(v) => setY('dec', v)} placeholder="+08d45m40.6s" />
       </div>

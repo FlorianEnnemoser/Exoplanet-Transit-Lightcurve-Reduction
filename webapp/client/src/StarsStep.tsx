@@ -6,6 +6,7 @@
 // indexing star.x = row, star.y = column (see exotransit.photometry).
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type Star, type Summary, type WizardState } from './api'
+import { Num } from './steps'
 
 const VIEW_H = 520
 const SCIENCE_COLOR = '#fc3d21' // --nasa-red
@@ -81,19 +82,34 @@ export default function StarsStep(props: {
       ...(state.stars.science ? [{ s: state.stars.science, color: SCIENCE_COLOR }] : []),
       ...state.stars.calibrators.map((s) => ({ s, color: CAL_COLOR })),
     ]
+    // array pixels -> display pixels (one array px spans k/step display px)
+    const scl = k / step
+    const p = state.photometry
+    const hw = state.stars.crop_half_width
     for (const { s, color } of marks) {
       const dx = (s.y / step) * k + tx // column -> display x
       const dy = (s.x / step) * k + ty // row -> display y
+      // photometry regions (294): show how large the aperture/annulus/crop actually are
       ctx.strokeStyle = color
       ctx.lineWidth = 1.5
+      ctx.setLineDash([])
       ctx.beginPath()
-      ctx.arc(dx, dy, 10, 0, 2 * Math.PI)
+      ctx.arc(dx, dy, p.aperture_radius * scl, 0, 2 * Math.PI) // aperture (solid)
       ctx.stroke()
+      ctx.setLineDash([4, 3])
+      for (const r of [p.annulus_inner, p.annulus_outer]) {
+        ctx.beginPath()
+        ctx.arc(dx, dy, r * scl, 0, 2 * Math.PI) // sky annulus (dashed)
+        ctx.stroke()
+      }
+      ctx.setLineDash([1, 2])
+      ctx.strokeRect(dx - hw * scl, dy - hw * scl, 2 * hw * scl, 2 * hw * scl) // crop window (dotted)
+      ctx.setLineDash([])
       ctx.fillStyle = color
       ctx.font = '12px Helvetica, Arial, sans-serif'
-      ctx.fillText(s.name, dx + 13, dy - 9)
+      ctx.fillText(s.name, dx + p.aperture_radius * scl + 4, dy - 4)
     }
-  }, [img, dims, state.stars])
+  }, [img, dims, state.stars, state.photometry])
 
   useEffect(draw, [draw])
 
@@ -120,6 +136,9 @@ export default function StarsStep(props: {
     canvas.addEventListener('wheel', onWheel, { passive: false })
     return () => canvas.removeEventListener('wheel', onWheel)
   }, [draw])
+
+  const setPhot = (k: keyof WizardState['photometry'], v: number) =>
+    onChange({ ...state, photometry: { ...state.photometry, [k]: v } })
 
   const pick = (row: number, col: number) => {
     if (!state.stars.science) {
@@ -218,6 +237,36 @@ export default function StarsStep(props: {
         >
           Reset view
         </button>
+      </div>
+      {/* live photometry-region sizes (294): edited here, drawn on the frame, shared with Parameters */}
+      <div className="grid region-fields">
+        <Num
+          label="Aperture radius [px]"
+          value={state.photometry.aperture_radius}
+          onChange={(v) => setPhot('aperture_radius', v ?? 0)}
+        />
+        <Num
+          label="Annulus inner [px]"
+          value={state.photometry.annulus_inner}
+          onChange={(v) => setPhot('annulus_inner', v ?? 0)}
+        />
+        <Num
+          label="Annulus outer [px]"
+          value={state.photometry.annulus_outer}
+          onChange={(v) => setPhot('annulus_outer', v ?? 0)}
+        />
+        <Num
+          label="FWHM [px]"
+          value={state.photometry.fwhm}
+          onChange={(v) => setPhot('fwhm', v ?? 0)}
+        />
+        <Num
+          label="Crop half-width [px]"
+          value={state.stars.crop_half_width}
+          onChange={(v) =>
+            onChange({ ...state, stars: { ...state.stars, crop_half_width: v ?? 0 } })
+          }
+        />
       </div>
       <div className="viewer">
         <canvas

@@ -130,3 +130,19 @@ th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size
 .star-list input { width: 11rem; }
 .star-list .coords { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
 .star-list button { background: none; border: none; color: var(--nasa-red); cursor: pointer; font-size: 1rem; }
+
+/* inline text-button, e.g. "↻ from window" next to a field label (292) */
+button.ghost.link {
+  border: none;
+  padding: 0;
+  margin-left: 0.5rem;
+  color: var(--nasa-red);
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+/* compact live photometry-region editors in the Stars step (294) */
+.region-fields { margin: 0.25rem 0 0.5rem; }
+.region-fields label.field { margin-bottom: 0.4rem; }

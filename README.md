@@ -59,6 +59,45 @@ error (too many frames flagged) · `1` unexpected.
 The *standard* (dark-subtraction) reduction of WASP-52 b is the acceptance
 gate: R_p ≈ 1.15 R_Jup, ρ ≈ 400 kg/m³, i ≈ 87.3°.
 
+## Web app
+
+A browser wizard (`webapp/`) builds a config interactively: FastAPI backend
+wrapping `exotransit` + a Vite/React SPA. All commands run from the repo root
+unless noted.
+
+### Development (two processes, live reload)
+
+```bash
+uv run --group web uvicorn webapp.server.main:app --reload   # API on :8000
+cd webapp/client && npm install && npm run dev               # SPA on :5173
+```
+
+Open <http://localhost:5173>; Vite proxies `/api` to the backend on `:8000`.
+Edits to `webapp/client/src/*` hot-reload instantly — no build step.
+
+### Production (one process)
+
+The backend serves the compiled SPA from `webapp/client/dist/` when present, so
+after building you only run uvicorn:
+
+```bash
+cd webapp/client && npm install && npm run build   # emits webapp/client/dist/
+cd ../..                                            # back to repo root
+uv run --group web uvicorn webapp.server.main:app   # serves API + SPA on :8000
+```
+
+Open <http://localhost:8000>. **`dist/` is a build artifact**: any change under
+`webapp/client/src/` only shows up after re-running `npm run build` (and a
+hard browser reload). Use the dev setup above to avoid rebuilding while working.
+
+## Build the package
+
+```bash
+uv build            # wheel + sdist into dist/
+# or without uv:
+python -m build
+```
+
 ## Develop
 
 ```bash
