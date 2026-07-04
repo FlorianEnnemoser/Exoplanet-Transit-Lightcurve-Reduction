@@ -107,13 +107,13 @@ def measure_star(frames: list[FrameMeta], masters: MasterFrames,
 
 ### S-4 TOML config schema
 
-**Traces:** R-6, R-7, R-8, R-15, R-16, ADR-0001; `schema_version` is proposed (§13.4)
+**Traces:** R-6, R-7, R-8, R-15, R-16, R-30, ADR-0001
 
 One TOML file per target (R-7). The complete schema, shown with the WASP-52 b
 values migrated from `exo_input_values.py`:
 
 ```toml
-schema_version = 1              # Status: proposed (§13.4)
+schema_version = 1              # R-30
 
 [observation]
 target = "WASP-52 b"
@@ -471,7 +471,9 @@ With depth `d = ΔF/F`, catalogue `R_*`, `a`, `P`, `M_p`, transit duration
 
 Each quantity gets a unit-tested reference value (§11.1).
 
-### S-18 Depth uncertainty from photometric scatter — `Status: proposed` (§13.1)
+### S-18 Depth uncertainty from photometric scatter
+
+**Traces:** R-27, §9.3
 
 The depth uncertainty additionally includes the measured scatter:
 `σ_d² = σ_base²/n_base + σ_in²/n_in` from the baseline and in-transit residual
@@ -479,7 +481,9 @@ scatter of the differential curve, propagated into `R_p`, `ρ`, `i` alongside
 the catalogue errors. Reported separately (`statistical` vs `catalogue`) and
 combined in quadrature in §9.3.
 
-### S-19 T₀ and O−C — `Status: proposed` (§13.2)
+### S-19 T₀ and O−C
+
+**Traces:** R-28, ADR-0003, §9.3
 
 Estimate mid-transit time `T₀` (BJD_TDB) as the midpoint of observed ingress/
 egress crossings of the half-depth level (or, minimally, the flux-weighted
@@ -487,7 +491,9 @@ minimum of the smoothed in-transit curve). If the config provides a reference
 ephemeris (`t0_ref`, `period`), report `O − C = T₀ − (t0_ref + E·P)` with the
 nearest integer epoch `E`. Both go into the results JSON (§9.3).
 
-### S-20 Limb darkening — `Status: proposed` (§13.3)
+### S-20 Limb darkening
+
+**Traces:** R-29, §9.3
 
 The estimator `R_p = √(d)·R_*` ignores stellar limb darkening and therefore
 biases `d` (box-shaped transit assumption). Specification: (a) the results
@@ -520,13 +526,13 @@ documented; columns for calibrators appear in config order.
 
 ### S-22 JSON sidecar
 
-**Traces:** R-23, R-24, ADR-0006; `schema_version`, scatter errors, T₀/O−C proposed (§13)
+**Traces:** R-23, R-24, R-27, R-28, R-30, ADR-0006
 
 `<output>/<casename>_result.json`:
 
 ```jsonc
 {
-  "schema_version": 1,                    // proposed (§13.4)
+  "schema_version": 1,                    // R-30
   "target": "WASP-52 b",
   "provenance": {                          // R-24
     "software": "exotransit", "version": "…", "python": "…",
@@ -540,13 +546,13 @@ documented; columns for calibrators appear in config order.
                  "weights": { "Calibrator_1": 0.6, "Calibrator_2": 0.4 } },
   "quality": { "n_frames": 0, "n_flagged_sci": 0, "flag_counts": {} },
   "results": {
-    "depth": { "value": 0.0, "err_statistical": 0.0 },        // §S-18 proposed
+    "depth": { "value": 0.0, "err_statistical": 0.0 },        // §S-18 (R-27)
     "delta_mag": 0.0,
     "r_p_rjup": { "value": 0.0, "err_catalogue": 0.0,
                    "err_statistical": 0.0, "err_total": 0.0 },
     "density_kg_m3": { "value": 0.0, "err_total": 0.0 },
     "inclination_deg": { "value": 0.0, "max": 0.0 },
-    "t0_bjd_tdb": null, "o_minus_c_days": null                 // §S-19 proposed
+    "t0_bjd_tdb": null, "o_minus_c_days": null                 // §S-19 (R-28)
   }
 }
 ```
@@ -711,29 +717,30 @@ II work can be scheduled without re-reading the requirements.
 
 ---
 
-# 13. Proposed additions — not yet in REQUIREMENTS.md
+# 13. Promoted additions — now in REQUIREMENTS.md
 
-Surfaced while writing this specification; each needs a maintainer decision
-(promote to a new `R-*` entry, or drop). Specs above reference them and are
-written so they can be deleted cleanly if rejected.
+Surfaced while writing this specification and, as of **2026-07-04**, **promoted**
+into `REQUIREMENTS.md` as requirements R-27–R-30. Retained here as a record of
+origin; the backing specs (S-18, S-19, S-20, S-4, S-22) are now fully traced,
+and no `Status: proposed` items remain.
 
 1. **§13.1 Depth uncertainty from photometric scatter** (spec S-18). Today's
    error propagation uses only catalogue errors (`e_rstar`, `e_m_planet`);
    the dominant error source — the measured scatter of the light curve —
    never enters the reported uncertainties. Cheap to add and makes the error
-   bars honest. *Suggested: R-27 (P1).*
+   bars honest. *Promoted: R-27 (P1).*
 2. **§13.2 T₀ and O−C output** (spec S-19). ADR-0003 adopts BJD_TDB explicitly
-   "to enable proper T₀ and O−C", but no requirement asks for either.
-   *Suggested: R-28 (P2).*
+   "to enable proper T₀ and O−C", but no requirement asked for either.
+   *Promoted: R-28 (P2).*
 3. **§13.3 Limb-darkening caveat + optional transit-model fit** (spec S-20).
    The √depth estimator systematically underestimates R_p because limb
    darkening deepens the observed minimum; a batman/pytransit fit is the
    standard remedy and would modernise the science without touching the
-   default path. *Suggested: R-29 (P2).*
+   default path. *Promoted: R-29 (P2).*
 4. **§13.4 `schema_version` field** (specs S-4, S-22) in the TOML config and
    the results JSON, so future format changes are detectable and migratable —
    cheap now, painful to retrofit once web-app sessions and saved configs
-   exist. *Suggested: R-30 (P1).*
+   exist. *Promoted: R-30 (P1).*
 
 ---
 
@@ -767,6 +774,10 @@ written so they can be deleted cleanly if rejected.
 | R-24 | S-22 |
 | R-25 | S-17 (planet.py docstring); full docstring pass tracked in TODO.md |
 | R-26 | §14 (this matrix); CLAUDE.md anchors updated when modules land |
+| R-27 | S-18 |
+| R-28 | S-19 |
+| R-29 | S-20 |
+| R-30 | S-4, S-22 |
 | NFR-1 | S-12, S-28 |
 | NFR-2 | S-27, S-28 |
 | NFR-3 | S-3, S-27, S-28 |
@@ -801,4 +812,4 @@ written so they can be deleted cleanly if rejected.
 | ADR-0009 | S-29 |
 | ADR-0010 | S-29 |
 | ADR-0011 | S-29 |
-| proposed §13.1–§13.4 | S-18, S-19, S-20, S-4/S-22 |
+| R-27–R-30 (promoted §13.1–§13.4) | S-18, S-19, S-20, S-4, S-22 |
