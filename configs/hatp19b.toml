@@ -1,0 +1,72 @@
+schema_version = 1
+
+[observation]
+target = "HAT-P-19 b"
+casename = "HATP19"
+
+[paths]
+lights = "_HATP19b"
+darks  = "_HATP19b"
+bias   = "_HATP19b"
+flats  = ""
+output = "_HATP19b/images"
+
+[stars]
+science = { name = "HATP19", x = 447, y = 510 }
+calibrators = [
+  { name = "Calibrator_1", x = 357, y = 425 },
+  { name = "Calibrator_2", x = 72,  y = 850 },
+]
+crop_half_width = 25
+
+[reduction]
+method = "standard"
+cut = "none"
+master_dark_combine = "median"
+master_bias_combine = "median"
+
+[photometry]
+fwhm = 3.0
+threshold_factor = 20.0
+threshold_stat = "std"
+background_sigma = 3.0
+background_maxiters = 5
+aperture_radius = 4.0
+annulus_inner = 6.0
+annulus_outer = 8.0
+method = "subpixel"
+subpixels = 5
+
+[tracking]
+mode = "manual"
+reference_frame = 0
+manual_shifts = [
+  { frame = 63,  dx = 0,   dy = -30 },
+  { frame = 109, dx = 35,  dy = -50 },
+  { frame = 137, dx = 70,  dy = -70 },
+  { frame = 156, dx = 100, dy = -70 },
+]
+
+[transit]
+predicted_start = ""
+predicted_end   = ""
+baseline_fit = "median"
+
+[system]
+r_star = 0.82
+r_star_err = 0.048
+semi_major_axis = 0.0466
+period = 4.00878
+m_planet = 0.292
+m_planet_err = 0.018
+transit_duration = 180
+
+[output]
+write_csv = true
+figures = false
+colormap = "gray_r"
+figsize = [15, 10]
+
+[logging]
+level = "INFO"
+file = "exotransit.log"

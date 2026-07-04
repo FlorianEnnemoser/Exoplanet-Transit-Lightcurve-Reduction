@@ -1,0 +1,83 @@
+schema_version = 1
+
+[observation]
+target = "WASP-52 b"
+casename = "WASP52"
+
+[paths]
+# Data ships flat in _WASP52b/ with suffix naming (*.BIAS.FIT / *.DARK.FIT / rest =
+# lights); io_fits.discover classifies by suffix, so all three point at the same dir.
+lights = "_WASP52b"
+darks  = "_WASP52b"
+bias   = "_WASP52b"
+flats  = ""
+output = "_WASP52b/images"
+
+[stars]
+science = { name = "WASP52", x = 595, y = 705 }
+calibrators = [
+  { name = "Calibrator_1", x = 425, y = 210 },
+  { name = "Calibrator_2", x = 240, y = 437 },
+]
+crop_half_width = 25
+
+[reduction]
+method = "standard"
+cut = "none"
+master_dark_combine = "median"
+master_bias_combine = "median"
+
+[photometry]
+fwhm = 3.0
+threshold_factor = 20.0
+threshold_stat = "std"
+background_sigma = 3.0
+background_maxiters = 5
+aperture_radius = 4.0
+annulus_inner = 6.0
+annulus_outer = 8.0
+method = "subpixel"
+subpixels = 5
+
+[tracking]
+mode = "manual"            # ponytail: auto phase-cross-correlation is P1 (ADR-0004)
+reference_frame = 0
+manual_shifts = [
+  { frame = 50,  dx = 30,  dy = -5  },
+  { frame = 80,  dx = 55,  dy = -15 },
+  { frame = 105, dx = 80,  dy = -25 },
+  { frame = 124, dx = 100, dy = -30 },
+  { frame = 139, dx = 120, dy = -30 },
+  { frame = 152, dx = 145, dy = -40 },
+]
+
+[transit]
+predicted_start = "21:48:00"
+predicted_end   = "23:36:00"
+baseline_fit = "median"    # ponytail: linear airmass-slope fit is P1 (S-16)
+
+[system]
+r_star = 0.79
+r_star_err = 0.02
+semi_major_axis = 0.0272
+period = 1.74978
+m_planet = 0.46
+m_planet_err = 0.02
+transit_duration = 110
+ra = "23h13m58.76s"
+dec = "+08d45m40.6s"
+[system.site]
+name = "Lustbuehel Observatory"
+lat = 47.0678
+lon = 15.4936
+height = 480.0
+
+[output]
+write_csv = true
+figures = false
+colormap = "gray_r"
+figsize = [15, 10]
+
+[logging]
+level = "INFO"
+file = "exotransit.log"
