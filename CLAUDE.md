@@ -2,7 +2,7 @@
 
 Guidance for agents in this repo, in a scientific register: what the pipeline does, how each stage maps to the code, and the caveats needed to operate it.
 
-> **Active development branch.** Work proceeds **only** on `claude/repo-overview-documentation-brui3h` — commit and push there, **never to `master`**. **Do not open or ask about pull requests**; the maintainer merges manually. See [`.claude/docs/REQUIREMENTS.md`](.claude/docs/REQUIREMENTS.md) for the planned refactor and the web data-input application.
+> **Active development branch.** Work proceeds **only** on `develop` — commit and push there, **never to `master`**. **Do not open or ask about pull requests**; the maintainer merges manually. See [`.claude/docs/REQUIREMENTS.md`](.claude/docs/REQUIREMENTS.md) for the planned refactor and the web data-input application.
 
 ## Documentation map
 
