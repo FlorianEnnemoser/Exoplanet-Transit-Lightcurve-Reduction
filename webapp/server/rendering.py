@@ -20,7 +20,8 @@ MAX_DISPLAY_PX = 1024
 SCALES = ("linear", "log", "zscale")
 
 
-@lru_cache(maxsize=64)  # frames are immutable per session; key = (path, scale)
+# ponytail: 256 covers a transit night; raise if datasets grow / users switch scales a lot.
+@lru_cache(maxsize=256)  # frames are immutable per session; key = (path, scale)
 def render_png(path: str, scale: str) -> bytes:
     """Render the FITS image at ``path`` with the given scale mode.
 

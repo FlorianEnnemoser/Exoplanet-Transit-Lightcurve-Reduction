@@ -283,7 +283,13 @@ are written so they can be dropped cleanly if rejected.
 
 ### Bugfixes & needed Features
 
-- [ ] Transduration in "5 System" should be calculated by predicted ingress / egress
+- [x] ~~laggy display of images. render them with lower resolution - calculations MUST be done on full and raw FITS image.~~
+      *(done differently — HTTP `Cache-Control: max-age=300` on `/frames/{i}/png` +
+      widened `render_png` lru_cache 64→256. Resolution left unchanged: integer
+      decimation is a no-op at the shipped 1124×850 frame size (562px at both 1024
+      and 640 caps), and photometry already reads full-res FITS per W-NFR-3. The lag
+      was server re-render on cache miss + browser re-fetch, not pixel count.)*
+- [ ] Transitduration in "5 System" should be calculated by predicted ingress / egress
 - [ ] by given a Target name there should be a button that allows to query from a webpage the needed parameters for Stellar Radius, etc
 - [ ] 4 - Parameters: Aperture Radius, Annulus, FWHM, half-width should be displayed live in the "3 - STARS" section (also editable), as you dont see how large the area is.
 - [ ] 4 - Parameters: For selected Science Target and Calibrators display the Integrated Flux by diameter (so x-axis is diameter of the selection, y is the total sum of light that occurs at this radius). Display this as subplots besides the real image.

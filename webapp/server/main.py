@@ -87,7 +87,14 @@ def frame_png(sid: str, index: int, scale: str = "zscale") -> Response:
             status_code=404,
             detail=f"frame index {index} out of range (0..{len(lights) - 1})",
         )
-    return Response(rendering.render_png(str(lights[index]), scale), media_type="image/png")
+    # Cache in the browser to kill redundant re-fetch/re-render while scrubbing.
+    # Bounded max-age (not immutable): URLs are keyed by index, and lights can be
+    # re-uploaded to the same session, so an index may change content — 300s self-heals.
+    return Response(
+        rendering.render_png(str(lights[index]), scale),
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
 
 
 @app.get("/api/sessions/{sid}/config")

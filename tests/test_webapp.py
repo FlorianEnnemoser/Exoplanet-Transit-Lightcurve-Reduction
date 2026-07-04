@@ -129,6 +129,7 @@ def test_frame_png_and_bounds(client, data_dir):
     resp = client.get(f"/api/sessions/{sid}/frames/0/png?scale=zscale")
     assert resp.status_code == 200
     assert resp.content.startswith(b"\x89PNG")
+    assert "max-age" in resp.headers.get("cache-control", "").lower()
     assert client.get(f"/api/sessions/{sid}/frames/99/png").status_code == 404
     assert client.get(f"/api/sessions/{sid}/frames/0/png?scale=bogus").status_code == 400
 
