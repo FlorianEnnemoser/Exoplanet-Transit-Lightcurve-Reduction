@@ -4,26 +4,20 @@ version = "0.1.0"
 description = "Differential aperture-photometry pipeline for transiting hot Jupiters (refactor of the bachelor-thesis analysis code)"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 dependencies = [
     "numpy",
     "matplotlib",
     "astropy",
     "photutils",
-    "scikit-image",   # ADR-0004 (auto tracking, P1) — pinned now so the API is available
-    "tomli-w",        # ADR-0001 config writing (CLI --emit-config / web export)
-    "tomli; python_version < '3.11'",  # tomllib backport (stdlib only on 3.11+)
+    "scikit-image", # ADR-0004 (auto tracking, P1) — pinned now so the API is available
 ]
 
 [project.scripts]
 exotransit = "exotransit.cli:main"
 
 [dependency-groups]
-dev = [
-    "pytest",
-    "ruff",
-    "mypy",
-]
+dev = ["pytest", "ruff", "mypy"]
 
 [build-system]
 requires = ["hatchling"]
@@ -36,7 +30,7 @@ packages = ["exotransit"]
 line-length = 100
 
 [tool.ruff.lint]
-extend-select = ["I"]  # import sorting
+extend-select = ["I"] # import sorting
 
 [tool.mypy]
 python_version = "3.10"

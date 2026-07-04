@@ -15,3 +15,5 @@ _KELT16b/
 # Pipeline run artifacts
 exo_console.log
 *.csv
+
+*cache

@@ -12,13 +12,8 @@ from __future__ import annotations
 
 import difflib
 import math
+import tomllib
 from dataclasses import dataclass, field
-
-try:
-    import tomllib  # Python >= 3.11
-except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
-    import tomli as tomllib  # type: ignore[no-redef]
-
 from pathlib import Path
 from typing import Any, Literal
 
