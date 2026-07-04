@@ -75,11 +75,6 @@ science/correctness pass.
       reference), `lightcurve` (N=1 passthrough + ensemble rejection), `planet`
       (R_p/ρ/i + error propagation), `outputs` (CSV/JSON round-trip, config hash)
       (R-20, S-25, ADR-0008).
-- [ ] Commit a down-sampled/cropped real WASP-52 b subset
-      (`tests/data/wasp52b_subset/`, GPL-compatible) and a
-      `test_acceptance_wasp52b` regression test asserting the standard-reduction
-      parameters within tolerances frozen from the first good ported run
-      (R-21, S-26, ADR-0008).
 
 ### P1 — Correctness & science
 
@@ -139,9 +134,12 @@ science/correctness pass.
 ### P2 — After the invariant holds
 
 - [ ] Remove the legacy `src/exoplanet_lightcurve/` code in a dedicated commit once
-      the new package demonstrates the acceptance invariant (S-1).
-- [ ] Record full provenance so a run is self-describing (software version, config,
-      input file list) (R-24, S-22).
+      the new package demonstrates the acceptance invariant (S-1). *Deferred: the
+      invariant is demonstrated locally (WASP-52 b, see [`RUN_REPORT.md`](RUN_REPORT.md)),
+      but legacy stays the reference until the open P1 correctness items land.*
+- [x] ~~Record full provenance so a run is self-describing (software version, config,
+      input file list)~~ (R-24, S-22). *Done — `outputs.write_json` (config SHA-256 +
+      input file list) is wired in `pipeline.run()`; verified in [`RUN_REPORT.md`](RUN_REPORT.md) §4.*
 
 ---
 
