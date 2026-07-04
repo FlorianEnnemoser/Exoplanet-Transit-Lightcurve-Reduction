@@ -257,6 +257,13 @@ is decided in `ADR.md`, ADR-0011.
   **MAY** use down-sampled data for speed (W-NFR-2); the final saved/run result uses
   full resolution (W-NFR-3).
 
+### Visual design
+
+- **W-23 (P1).** The UI **SHOULD** follow a **NASA-inspired visual identity** —
+  dark theme, NASA blue/red accents, clean sans-serif typography — applied
+  consistently across all wizard steps. Concrete design tokens are fixed in
+  `SPECS.md` S-33.
+
 ### Non-functional (web app)
 
 - **W-NFR-1 (P0, usability).** Reaching a runnable configuration from a fresh

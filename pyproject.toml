@@ -17,7 +17,18 @@ dependencies = [
 exotransit = "exotransit.cli:main"
 
 [dependency-groups]
-dev = ["pytest", "ruff", "mypy"]
+dev = [
+    "pytest",
+ "ruff",
+ "mypy",
+ "httpx>=0.28.1",
+]
+web = [
+    "fastapi>=0.139.0",
+    "python-multipart>=0.0.32",
+    "tomli-w>=1.2.0",
+    "uvicorn>=0.50.0",
+]
 
 [build-system]
 requires = ["hatchling"]

@@ -1,0 +1,131 @@
+/* NASA-inspired design tokens (W-23, SPECS S-33) */
+:root {
+  --bg: #0b0d17;
+  --panel: #151a2d;
+  --text: #f2f4f8;
+  --nasa-blue: #0b3d91;
+  --nasa-red: #fc3d21;
+  --muted: #8a93a6;
+  --border: #2a3352;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+#root { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+h1, h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
+h1 { font-size: 1.3rem; margin: 0; }
+h1 .accent { color: var(--nasa-red); }
+h2 { font-size: 1rem; margin: 0 0 1rem; color: var(--muted); }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+/* wizard step indicator (W-15) */
+.steps { display: flex; gap: 0.25rem; margin-top: 1rem; flex-wrap: wrap; }
+.steps button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.35rem 0.8rem;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.steps button.done { color: var(--text); border-color: var(--nasa-blue); cursor: pointer; }
+.steps button.current { background: var(--nasa-blue); color: #fff; border-color: var(--nasa-blue); }
+.steps button:disabled { cursor: not-allowed; opacity: 0.6; }
+.steps button.current:disabled, .steps button.done:disabled { opacity: 1; }
+
+/* forms */
+label.field { display: block; margin-bottom: 0.75rem; }
+label.field span { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.2rem; }
+input, select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+  width: 100%;
+}
+input:focus, select:focus { outline: 2px solid var(--nasa-blue); outline-offset: -1px; }
+input.invalid { border-color: var(--nasa-red); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 1rem; }
+
+button.primary, a.primary {
+  background: var(--nasa-blue);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.55rem 1.4rem;
+  font: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+button.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+button.ghost {
+  background: none;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.55rem 1.4rem;
+  font: inherit;
+  cursor: pointer;
+}
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1.25rem; }
+
+.error { color: var(--nasa-red); }
+.warn { color: var(--nasa-red); font-size: 0.85rem; }
+.muted { color: var(--muted); }
+.blocked-reason { color: var(--muted); font-size: 0.85rem; text-align: right; }
+
+/* tables (check + review steps) */
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.06em; }
+
+/* frame viewer */
+.viewer { position: relative; background: #000; border: 1px solid var(--border); border-radius: 4px; }
+.viewer canvas { display: block; width: 100%; cursor: crosshair; }
+.viewer-bar { display: flex; gap: 1rem; align-items: center; margin: 0.5rem 0; flex-wrap: wrap; }
+.viewer-bar .spacer { flex: 1; }
+.timeline { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem; }
+.timeline input[type='range'] { flex: 1; accent-color: var(--nasa-red); }
+.timeline .stamp { font-variant-numeric: tabular-nums; font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+
+.star-list { list-style: none; padding: 0; margin: 0.75rem 0 0; }
+.star-list li { display: flex; gap: 0.5rem; align-items: center; padding: 0.25rem 0; }
+.star-list .badge {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 0.1rem 0.5rem; border-radius: 3px; color: #fff; white-space: nowrap;
+}
+.badge.science { background: var(--nasa-red); }
+.badge.calibrator { background: var(--nasa-blue); }
+.star-list input { width: 11rem; }
+.star-list .coords { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.star-list button { background: none; border: none; color: var(--nasa-red); cursor: pointer; font-size: 1rem; }

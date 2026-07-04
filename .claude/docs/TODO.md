@@ -181,21 +181,36 @@ with a server-tiled canvas viewer, guided-wizard interaction model
 
 ### M1 — Config generator (P0/P1)
 
-- [ ] Session create from uploaded frames or server-side dirs; per-category header
+- [x] Session create from uploaded frames or server-side dirs; per-category header
       summary (count, dims, exposure, `TIME-OBS` range, mismatch flags) reusing S-9
-      validation (W-1, W-2, S-30).
-- [ ] Interactive frame viewer (linear/log/zscale scaling, zoom, pan) fed by
-      backend-rendered tiles (W-4, S-30, ADR-0010).
-- [ ] Click-to-pick science target + N calibrators → pixel coords; labelled,
-      listed, removable/renamable (W-5, S-30).
-- [ ] Validated parameter forms: single reduction-method choice + photometry params,
+      validation (W-1, W-2, S-30). *(done — `webapp/server/sessions.py` +
+      `io_fits.summarize` (non-raising, reuses the S-9 helpers; `discover` stays
+      the strict gate); `POST /api/sessions`, `/upload`, `GET /summary`.)*
+- [x] Interactive frame viewer (linear/log/zscale scaling, zoom, pan) fed by
+      backend-rendered tiles (W-4, S-30, ADR-0010). *(done —
+      `webapp/server/rendering.py` renders whole-frame PNGs down-sampled to
+      ≤1024 px (astropy scaling + matplotlib encoding, no new imaging dep);
+      canvas viewer with wheel-zoom/drag-pan in `webapp/client/src/StarsStep.tsx`.)*
+- [x] Click-to-pick science target + N calibrators → pixel coords; labelled,
+      listed, removable/renamable (W-5, S-30). *(done — click maps display →
+      array coords client-side (`star.x` = row, `star.y` = col, legacy
+      indexing); science first, then calibrators; list with rename/remove.)*
+- [x] Validated parameter forms: single reduction-method choice + photometry params,
       live validation (inner < outer annulus, aperture > 0), run/export disabled
-      while invalid (W-8, W-9, S-30).
-- [ ] Timeline scrubber under the viewer (frame index + timestamp, keyboard
-      stepping, pre-cached/down-sampled frames) (W-14, W-NFR-2, S-30).
-- [ ] Guided wizard (open → check → pick → options → review → export) with
+      while invalid (W-8, W-9, S-30). *(done — client checks in
+      `webapp/client/src/steps.tsx`; authoritative validation round-trips the
+      state through `exotransit.config.load` via `POST /validate`.)*
+- [x] Timeline scrubber under the viewer (frame index + timestamp, keyboard
+      stepping, pre-cached/down-sampled frames) (W-14, W-NFR-2, S-30). *(done —
+      native range input (keyboard for free) + `TIME-OBS` stamp; ±3-frame PNG
+      prefetch. Play/pause auto-advance deferred to M2 polish.)*
+- [x] Guided wizard (open → check → pick → options → review → export) with
       step-gating and a review screen; export a re-loadable pipeline **TOML**
-      (W-11, W-15, W-16, W-19, W-21, W-NFR-1, S-30).
+      (W-11, W-15, W-16, W-19, W-21, W-NFR-1, S-30). *(done —
+      `webapp/client/src/App.tsx`; Next disabled with a plain-language reason;
+      free revisits keep later values; S-30 gate verified: the web-exported
+      WASP-52 b TOML runs unmodified through `exotransit reduce` and reproduces
+      the frozen invariant R_p=1.2198 R_Jup, ρ=336.1 kg/m³, i=87.254°.)*
 
 ### M2 — Guided photometry (P1)
 
@@ -220,10 +235,14 @@ with a server-tiled canvas viewer, guided-wizard interaction model
 
 ### Cross-cutting (P1/P2)
 
-- [ ] Session persistence / resume-later; independent, isolated sessions
-      (W-3, W-18, S-29).
-- [ ] Local-first, single-user, no-auth deployment (`uvicorn` + browser); backend
-      reuses the Part I package directly (W-NFR-4, W-NFR-5, S-29).
+- [x] Session persistence / resume-later; independent, isolated sessions
+      (W-3, W-18, S-29). *(done for M1 scope — one JSON-backed directory per
+      session under `_websessions/`, state saved on every step transition,
+      resume via the `#sid` URL hash.)*
+- [x] Local-first, single-user, no-auth deployment (`uvicorn` + browser); backend
+      reuses the Part I package directly (W-NFR-4, W-NFR-5, S-29). *(done —
+      `uv run --group web uvicorn webapp.server.main:app` serves API + built SPA
+      from `webapp/client/dist`; no auth, no second science implementation.)*
 
 ---
 

@@ -12,6 +12,9 @@ _TrES5b/
 _TrES2b/
 _KELT16b/
 
+# Web app sessions (webapp/server/sessions.py)
+_websessions/
+
 # Pipeline run artifacts
 exo_console.log
 exotransit.log

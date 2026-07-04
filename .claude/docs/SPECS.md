@@ -659,6 +659,10 @@ II work can be scheduled without re-reading the requirements.
 - **Backend:** FastAPI service importing `exotransit` directly (one science
   implementation, W-NFR-5/W-NFR-3). Pydantic models mirror the TOML schema of
   S-4 field-for-field so CLI and web validate identically (S-5 rules).
+  In practice the schema mirror is realised without a parallel model: the
+  wizard state is round-tripped through `tomli_w.dumps` → `exotransit.config.load`,
+  so the CLI's loader is the single validation source of truth; Pydantic types
+  only the request bodies.
 - **Frontend:** React SPA; custom canvas viewer rendering backend-produced
   PNG tiles (scaling linear/log/zscale server-side; display down-sampled,
   photometry full-resolution).
@@ -714,6 +718,25 @@ II work can be scheduled without re-reading the requirements.
   the saved/final run always recomputes at full resolution (W-NFR-3).
 - Optional side-by-side comparison of two reduction methods + CSV download
   (W-13, replacing the legacy `option_compare` workflow).
+
+### S-33 Visual design tokens
+
+**Traces:** W-23
+
+NASA-inspired identity, fixed as CSS custom properties in the SPA's
+`theme.css` and used by every wizard step:
+
+| Token | Value | Use |
+|---|---|---|
+| `--bg` | `#0b0d17` | page background (dark theme) |
+| `--panel` | `#151a2d` | cards, wizard step panels |
+| `--text` | `#f2f4f8` | body text |
+| `--nasa-blue` | `#0b3d91` | primary actions, step indicator, links |
+| `--nasa-red` | `#fc3d21` | validation errors, destructive actions, accents |
+
+Typography: font stack `"Helvetica Neue", Helvetica, Arial, sans-serif`
+(no webfont dependency); step headings uppercase with wide letter-spacing.
+Native form controls, styled via the tokens — no UI component library.
 
 ---
 
@@ -796,6 +819,7 @@ and no `Status: proposed` items remain.
 | W-20 | S-31 |
 | W-21 | S-30 |
 | W-22 | S-32 |
+| W-23 | S-33 |
 | W-NFR-1 | S-30 |
 | W-NFR-2 | S-29, S-30 |
 | W-NFR-3 | S-29, S-32 |

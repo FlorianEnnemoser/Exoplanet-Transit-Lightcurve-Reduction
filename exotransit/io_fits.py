@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from astropy.io import fits
@@ -179,6 +180,114 @@ def discover(cfg: Config) -> FrameSet:
 def load_cube(paths: tuple[Path, ...] | list[Path]) -> np.ndarray:
     """Stack the given FITS frames into a float32 cube ``(n, rows, cols)``."""
     return np.stack([fits.getdata(p).astype(np.float32) for p in paths], axis=0)
+
+
+def list_lights(directory: Path) -> list[Path]:
+    """Sorted light frames in ``directory`` (suffix-classified, filename order)."""
+    return [p for p in _list_fits(directory) if _kind(p) == "light"]
+
+
+_SUMMARY_KIND = {"lights": "light", "darks": "dark", "bias": "bias", "flats": "flat"}
+
+
+def summarize(
+    lights: Path | None, darks: Path | None, bias: Path | None, flats: Path | None = None
+) -> dict[str, Any]:
+    """Per-category frame summary for interactive data checks (W-2, S-30).
+
+    Unlike :func:`discover` this never raises: every issue (missing directory,
+    empty category, mismatched dimensions, missing header keywords) becomes a
+    plain-language string in that category's ``problems`` list so a UI can
+    display it. :func:`discover` remains the strict gate for actual runs.
+
+    Parameters
+    ----------
+    lights, darks, bias : Path or None
+        Category directories (suffix-classified; may be identical). ``None``
+        is reported as a problem — the category is not yet configured.
+    flats : Path, optional
+        Flat directory; ``None`` = flat-fielding off, category reported empty.
+
+    Returns
+    -------
+    dict
+        ``{category: {"count", "dims", "exptime_range", "time_obs_range",
+        "problems", "frames"}}``; ``frames`` (name, ``TIME-OBS``, ``EXPTIME``)
+        is populated for lights only, in filename order.
+    """
+    dirs: dict[str, Path | None] = {"lights": lights, "darks": darks, "bias": bias, "flats": flats}
+    result: dict[str, Any] = {}
+    lights_dims: tuple[int, int] | None = None
+    for cat, directory in dirs.items():
+        entry: dict[str, Any] = {
+            "count": 0,
+            "dims": None,
+            "exptime_range": None,
+            "time_obs_range": None,
+            "problems": [],
+            "frames": [],
+        }
+        result[cat] = entry
+        if directory is None:
+            if cat != "flats":  # flats unset = feature off, not a problem (S-8)
+                entry["problems"].append("no directory configured")
+            continue
+        if not directory.is_dir():
+            entry["problems"].append(f"directory does not exist: {directory}")
+            continue
+        paths = [p for p in _list_fits(directory) if _kind(p) == _SUMMARY_KIND[cat]]
+        entry["count"] = len(paths)
+        if not paths:
+            entry["problems"].append(f"no {cat} FITS frames found in {directory}")
+            continue
+        dims: tuple[int, int] | None = None
+        exptimes: list[float] = []
+        times: list[str] = []
+        for p in paths:
+            try:
+                hdr = fits.getheader(p)
+            except Exception as exc:
+                entry["problems"].append(f"{p.name}: cannot read FITS header ({exc})")
+                continue
+            d = (int(hdr["NAXIS2"]), int(hdr["NAXIS1"]))
+            if dims is None:
+                dims = d
+            elif d != dims:
+                entry["problems"].append(
+                    f"{p.name}: dimensions {d} differ from {cat} baseline {dims}"
+                )
+            exptime = hdr.get("EXPTIME")
+            time_obs = hdr.get("TIME-OBS", hdr.get("DATE-OBS"))
+            if exptime is not None:
+                exptimes.append(float(exptime))
+            if time_obs is not None:
+                times.append(str(time_obs))
+            if cat == "lights":
+                if hdr.get("DATE-OBS") is None and hdr.get("TIME-OBS") is None:
+                    entry["problems"].append(f"{p.name}: missing DATE-OBS/TIME-OBS header")
+                if "EXPTIME" not in hdr:
+                    entry["problems"].append(f"{p.name}: missing EXPTIME header")
+                entry["frames"].append(
+                    {
+                        "name": p.name,
+                        "time_obs": None if time_obs is None else str(time_obs),
+                        "exptime": None if exptime is None else float(exptime),
+                    }
+                )
+        entry["dims"] = None if dims is None else list(dims)
+        if exptimes:
+            entry["exptime_range"] = [min(exptimes), max(exptimes)]
+        if times:
+            # first→last in filename order, not lexicographic min/max — wall-clock
+            # TIME-OBS strings can roll over midnight.
+            entry["time_obs_range"] = [times[0], times[-1]]
+        if cat == "lights":
+            lights_dims = dims
+        elif dims is not None and lights_dims is not None and dims != lights_dims:
+            entry["problems"].append(
+                f"dimensions {list(dims)} differ from lights {list(lights_dims)}"
+            )
+    return result
 
 
 def _format(errors: list[str]) -> str:
