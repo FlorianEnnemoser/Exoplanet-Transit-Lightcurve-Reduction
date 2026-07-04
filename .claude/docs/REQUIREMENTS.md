@@ -76,6 +76,22 @@ reproduce catalogue values within uncertainty?" is the regression gate.
   HAT-P-19 b) that the thesis lists as future work.
 - **R-14 (P2).** Add optional **flat-field** calibration (`Light − Dark) / Flat`,
   currently absent, behind a config switch.
+- **R-27 (P1).** Report a **statistical** depth uncertainty from the measured
+  photometric scatter of the differential curve — today the dominant error
+  source never enters the reported error bars, which use only catalogue errors
+  (`e_rstar`, `e_m_planet`). Combine `σ_base²/n_base + σ_in²/n_in` and propagate
+  it into `R_p`, `ρ`, `i` alongside the catalogue errors, reporting the two
+  contributions separately and combined in quadrature (spec S-18).
+- **R-28 (P2).** Output the mid-transit time **T₀** (BJD_TDB) and, when the
+  config supplies a reference ephemeris (`t0_ref`, `period`), the **O − C**
+  residual for the nearest epoch — the value ADR-0003 adopted BJD_TDB to enable
+  (spec S-19).
+- **R-29 (P2).** State the **limb-darkening caveat** explicitly in the results
+  and README (the √depth estimator biases `R_p` low), and provide an
+  **optional** transit-model fit stage (e.g. `exotransit fit` with `batman` /
+  `pytransit`, quadratic limb darkening) reporting model-based `R_p/R_*`, `i`,
+  `T₀` *next to* — not instead of — the simple estimator. The simple √depth
+  estimator remains the default and the acceptance gate (spec S-20).
 
 ### 4. Pipeline generalisation
 
@@ -114,6 +130,10 @@ reproduce catalogue values within uncertainty?" is the regression gate.
   hash, and derived parameters with uncertainties — enough to reproduce a figure.
 - **R-24 (P2).** Record provenance in outputs (software version, config, input file
   list) so a run is self-describing.
+- **R-30 (P1).** Include a **`schema_version`** field in both the TOML config
+  and the results JSON so future format changes are detectable and migratable —
+  cheap now, painful to retrofit once web-app sessions and saved configs exist
+  (specs S-4, S-22).
 
 ### 8. Documentation
 
