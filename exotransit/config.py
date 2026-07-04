@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+from astropy.coordinates import SkyCoord
+
 REDUCTION_METHODS = ("none", "standard", "bias", "dark_bias")
 CUT_MODES = ("none", "median", "average", "min", "sigma_clip")
 COMBINE_MODES = ("mean", "median")
@@ -93,6 +95,16 @@ class Transit:
 
 
 @dataclass(frozen=True)
+class Site:
+    """Observatory location — needed for the BJD_TDB light-travel correction (S-14)."""
+
+    name: str
+    lat: float
+    lon: float
+    height: float
+
+
+@dataclass(frozen=True)
 class System:
     r_star: float
     r_star_err: float
@@ -101,8 +113,9 @@ class System:
     m_planet: float
     m_planet_err: float
     transit_duration: float
-    ra: str | None
-    dec: str | None
+    ra: str  # ICRS RA, e.g. "23h13m58.76s" — required for BJD_TDB (S-14)
+    dec: str  # ICRS Dec, e.g. "+08d45m40.6s"
+    site: Site
 
 
 @dataclass(frozen=True)
@@ -191,6 +204,7 @@ _ALLOWED_KEYS: dict[str, set[str]] = {
         "dec",
         "site",
     },
+    "system.site": {"name", "lat", "lon", "height"},
     "output": {
         "write_csv",
         "figures",
@@ -237,6 +251,18 @@ def _star(raw: dict[str, Any], role: str, field_name: str) -> StarSpec:
     return StarSpec(str(raw["name"]), int(raw["x"]), int(raw["y"]), role)  # type: ignore[arg-type]
 
 
+def _site(raw: Any) -> Site:
+    _need(
+        isinstance(raw, dict) and {"lat", "lon", "height"} <= set(raw),
+        "[system.site]: required table with lat, lon, height (needed for BJD_TDB)",
+    )
+    lat, lon, height = float(raw["lat"]), float(raw["lon"]), float(raw["height"])
+    _need(-90.0 <= lat <= 90.0, f"[system.site].lat: got {lat}, must be in [-90, 90]")
+    _need(-180.0 <= lon <= 360.0, f"[system.site].lon: got {lon}, must be in [-180, 360]")
+    _need(math.isfinite(height), f"[system.site].height: got {height}, must be finite")
+    return Site(name=str(raw.get("name", "")), lat=lat, lon=lon, height=height)
+
+
 def load(path: str | Path) -> Config:
     """Parse and validate ``path``, returning a frozen :class:`Config`.
 
@@ -265,7 +291,8 @@ def load(path: str | Path) -> Config:
     ):
         if section in raw:
             _reject_unknown(raw[section], section)
-    # ponytail: [system.site] keys not validated at P0 — only used by BJD_TDB (P1, S-14)
+    if isinstance(raw.get("system"), dict) and "site" in raw["system"]:
+        _reject_unknown(raw["system"]["site"], "system.site")
 
     obs = raw.get("observation", {})
     p = raw.get("paths", {})
@@ -374,6 +401,17 @@ def load(path: str | Path) -> Config:
 
     for key in ("r_star", "semi_major_axis", "period", "m_planet", "transit_duration"):
         _need(key in sysd, f"[system].{key}: required")
+    # ra/dec/site are required for BJD_TDB (S-14) and validated here (S-5).
+    for key in ("ra", "dec"):
+        _need(key in sysd, f"[system].{key}: required (needed for BJD_TDB)")
+    try:
+        SkyCoord(str(sysd["ra"]), str(sysd["dec"]), frame="icrs")
+    except Exception as exc:
+        raise ConfigError(
+            f"[system].ra/dec: {sysd['ra']!r} / {sysd['dec']!r} do not parse as "
+            f"ICRS coordinates ({exc})"
+        ) from exc
+    site = _site(sysd.get("site"))
     system = System(
         r_star=float(sysd["r_star"]),
         r_star_err=float(sysd.get("r_star_err", 0.0)),
@@ -382,8 +420,9 @@ def load(path: str | Path) -> Config:
         m_planet=float(sysd["m_planet"]),
         m_planet_err=float(sysd.get("m_planet_err", 0.0)),
         transit_duration=float(sysd["transit_duration"]),
-        ra=sysd.get("ra"),
-        dec=sysd.get("dec"),
+        ra=str(sysd["ra"]),
+        dec=str(sysd["dec"]),
+        site=site,
     )
 
     fig = out.get("figsize", [15, 10])

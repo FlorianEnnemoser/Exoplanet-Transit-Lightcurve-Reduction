@@ -36,7 +36,7 @@ def write_csv(
     path.parent.mkdir(parents=True, exist_ok=True)
     sci = photometry[0]
     cals = photometry[1:]
-    header = ["frame_index", "file", "time_raw", "exptime", "flux_sci", "quality_sci"]
+    header = ["frame_index", "file", "time_raw", "bjd_tdb", "exptime", "flux_sci", "quality_sci"]
     for c in cals:
         header += [f"flux_cal_{c.star.name}", f"quality_cal_{c.star.name}"]
     header += [f"ratio_{c.star.name}" for c in cals] + ["ratio_ensemble"]
@@ -50,6 +50,7 @@ def write_csv(
                 i,
                 meta.path.name,
                 meta.time_raw,
+                f"{meta.bjd_tdb:.8f}",
                 meta.exptime,
                 _num(sci.flux[i]),
                 sci.quality[i],

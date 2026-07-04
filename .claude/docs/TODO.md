@@ -93,10 +93,12 @@ science/correctness pass.
 - [ ] Frame calibration ordering (subtract masters per method → optional flat-field
       → per-frame `cut`), with flat-fielding behind an optional `paths.flats` switch
       (R-14, S-8).
-- [ ] Compute **BJD_TDB** per frame from `DATE-OBS`/`TIME-OBS` + `EXPTIME`
+- [x] Compute **BJD_TDB** per frame from `DATE-OBS`/`TIME-OBS` + `EXPTIME`
       (mid-exposure) and target/site coordinates; use it as the light-curve time
       ordinate everywhere; retain the raw header string for provenance
-      (R-12, S-14, ADR-0003).
+      (R-12, S-14, ADR-0003). *(computed in `io_fits.discover`, carried on
+      `FrameMeta.bjd_tdb`, written to the CSV; plots/time-windows consume it when
+      those P1 items land.)*
 - [ ] Derive transit windows from predicted ingress/egress times and add a **linear
       baseline fit** for the out-of-transit airmass slope (HAT-P-19 b); retire the
       fixed "first 20 / middle 20 / last 20" windows and `x_ax_loc` tick indices

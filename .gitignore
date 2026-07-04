@@ -11,6 +11,7 @@ _HATP19b/
 _TrES5b/
 _TrES2b/
 _KELT16b/
+configs/
 
 # Pipeline run artifacts
 exo_console.log

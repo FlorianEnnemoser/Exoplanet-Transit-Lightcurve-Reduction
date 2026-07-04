@@ -17,7 +17,13 @@ from exotransit.planet import compute
 def _fixture(tmp_path, wasp_config_text):
     cfg = config.load(write_toml(tmp_path, wasp_config_text))
     lights = tuple(
-        FrameMeta(path=tmp_path / f"f{i}.fit", index=i, time_raw=f"00:00:{i:02d}", exptime=10.0)
+        FrameMeta(
+            path=tmp_path / f"f{i}.fit",
+            index=i,
+            time_raw=f"00:00:{i:02d}",
+            exptime=10.0,
+            bjd_tdb=2457662.5 + i * 0.001,
+        )
         for i in range(3)
     )
     fs = FrameSet(lights=lights, darks=(), bias=(), shape=(50, 50))
@@ -49,6 +55,7 @@ def test_csv_roundtrip(tmp_path, wasp_config_text):
     assert rows[1]["quality_sci"] == "NO_SOURCE"
     assert rows[1]["flux_sci"] == ""  # NaN serialised as empty
     assert float(rows[2]["flux_sci"]) == 12.0
+    assert float(rows[0]["bjd_tdb"]) == 2457662.5  # BJD_TDB column present (S-14/S-21)
 
 
 def test_json_and_hash_stability(tmp_path, wasp_config_text):

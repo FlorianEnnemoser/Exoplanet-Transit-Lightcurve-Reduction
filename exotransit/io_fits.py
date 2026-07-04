@@ -36,9 +36,9 @@ class DataError(Exception):
 class FrameMeta:
     path: Path
     index: int
-    time_raw: str
+    time_raw: str  # raw header timestamp, kept for provenance (S-14)
     exptime: float
-    bjd_tdb: float | None = None  # ponytail: BJD_TDB is P1 (timebase.py, S-14)
+    bjd_tdb: float  # mid-exposure BJD_TDB — the light-curve ordinate (S-14)
 
 
 @dataclass(frozen=True)
@@ -113,7 +113,8 @@ def discover(cfg: Config) -> FrameSet:
                 errors.append(f"[paths].{cat}: dimensions {cat_shape} differ from lights {shape}")
 
     # required headers on every light frame + collect timing
-    metas: list[tuple[Path, str, float, str]] = []  # path, time_raw, exptime, sort_key
+    # record: (path, date_obs, time_obs, exptime, time_raw)
+    records: list[tuple[Path, str | None, str | None, float, str]] = []
     for p in all_light:
         try:
             hdr = fits.getheader(p)
@@ -126,22 +127,33 @@ def discover(cfg: Config) -> FrameSet:
             errors.append(f"{p}: missing DATE-OBS/TIME-OBS header")
         if "EXPTIME" not in hdr:
             errors.append(f"{p}: missing EXPTIME header")
-        sort_key = str(date_obs if date_obs is not None else time_obs)
-        metas.append(
-            (
-                p,
-                str(time_obs if time_obs is not None else date_obs),
-                float(hdr.get("EXPTIME", 0.0)),
-                sort_key,
-            )
-        )
+        time_raw = str(time_obs if time_obs is not None else date_obs)
+        records.append((p, date_obs, time_obs, float(hdr.get("EXPTIME", 0.0)), time_raw))
 
     if errors:
         raise DataError(_format(errors))
 
-    metas.sort(key=lambda m: m[3])  # deterministic order by observation time (R-18)
+    # BJD_TDB per frame (S-14): target coord + observatory built once (S-2), reused.
+    from . import timebase
+
+    target = timebase.target_coord(cfg.system)
+    site = timebase.observatory(cfg.system)
+    metas: list[tuple[Path, str, float, float]] = []  # path, time_raw, exptime, bjd_tdb
+    for p, date_obs, time_obs, exptime, time_raw in records:
+        try:
+            bjd = timebase.bjd_tdb(date_obs, time_obs, exptime, target, site)
+        except Exception as exc:
+            errors.append(f"{p}: cannot compute BJD_TDB from timestamp ({exc})")
+            continue
+        metas.append((p, time_raw, exptime, bjd))
+
+    if errors:
+        raise DataError(_format(errors))
+
+    metas.sort(key=lambda m: m[3])  # deterministic order by BJD_TDB (R-18)
     lights = tuple(
-        FrameMeta(path=p, index=i, time_raw=t, exptime=e) for i, (p, t, e, _) in enumerate(metas)
+        FrameMeta(path=p, index=i, time_raw=t, exptime=e, bjd_tdb=b)
+        for i, (p, t, e, b) in enumerate(metas)
     )
     assert shape is not None
     return FrameSet(lights=lights, darks=tuple(all_dark), bias=tuple(all_bias), shape=shape)
