@@ -1,0 +1,23 @@
+[project]
+name = "exoplanet-lightcurve-reduction"
+version = "0.1.0"
+description = "Differential aperture-photometry pipeline for transiting hot Jupiters (bachelor thesis analysis code)"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    # Pinned to the pre-2019 API the pipeline was written against:
+    # `iters=` (not `maxiters=`), `.area()` as a method, callable DAOStarFinder.
+    # See CLAUDE.md §7 "Legacy ~2018 API".
+    "numpy<1.24",
+    "matplotlib",
+    "astropy<4.0",
+    "photutils<0.7",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/exoplanet_lightcurve"]

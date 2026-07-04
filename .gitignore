@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+build/
+dist/
+
+# Data directories created on demand from exo_input_values.py paths (see CLAUDE.md §3)
+_WASP52b/
+_HATP19b/
+_TrES5b/
+_KELT16b/
+
+# Pipeline run artifacts
+exo_console.log
+*.csv
