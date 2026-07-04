@@ -30,6 +30,24 @@ def test_rp_and_error_vs_hand(tmp_path, wasp_config_text):
     assert np.isclose(p.density, density)
 
 
+def test_linear_baseline_recovers_depth_under_airmass_slope(tmp_path, wasp_config_text):
+    sysd = config.load(write_toml(tmp_path, wasp_config_text)).system
+    # 60 frames over 0.2 d; ingress/egress bracket the middle third.
+    bjd = np.linspace(0.0, 0.2, 60)
+    ingress, egress = 0.07, 0.13
+    slope, intercept = 0.5, 1.0  # baseline trend a + b*t
+    depth = 0.02
+    ratio = intercept + slope * bjd
+    core = (bjd >= ingress + 0.006) & (bjd <= egress - 0.006)
+    ratio[core] *= 1.0 - depth  # multiplicative dip on top of the trend
+
+    p = planet.compute(ratio, sysd, bjd=bjd, ingress=ingress, egress=egress, baseline_fit="linear")
+    assert np.isclose(p.depth, depth, atol=2e-3)
+
+    # median path is unaffected by the linear-only args
+    assert planet.compute(_ratio(60, 0.02), sysd).depth > 0
+
+
 def test_inclination_formula(tmp_path, wasp_config_text):
     sysd = config.load(write_toml(tmp_path, wasp_config_text)).system
     p = planet.compute(_ratio(60, 0.024), sysd)

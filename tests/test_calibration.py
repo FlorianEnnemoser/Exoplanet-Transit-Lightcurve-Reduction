@@ -20,3 +20,19 @@ def test_subtract_masters_per_method():
     assert np.allclose(calibration.subtract_masters(frame, m, "standard"), 70.0)
     assert np.allclose(calibration.subtract_masters(frame, m, "bias"), 90.0)
     assert np.allclose(calibration.subtract_masters(frame, m, "dark_bias"), 60.0)
+
+
+def test_build_master_flat_normalised_to_unit_median():
+    # non-uniform flat with a known dark pedestal; result must have unit median (S-8).
+    cube = np.array([[[10.0, 20.0], [30.0, 40.0]]] * 3) + np.arange(3)[:, None, None]
+    dark = np.full((2, 2), 1.0)
+    flat = calibration.build_master_flat(cube, dark)
+    assert np.isclose(np.median(flat), 1.0)
+
+
+def test_apply_flat_divides_and_is_identity_when_absent():
+    frame = np.full((2, 2), 50.0)
+    flat = np.array([[1.0, 2.0], [4.0, 5.0]])
+    m = MasterFrames(flat=flat)
+    assert np.allclose(calibration.apply_flat(frame, m), frame / flat)
+    assert np.allclose(calibration.apply_flat(frame, MasterFrames()), frame)

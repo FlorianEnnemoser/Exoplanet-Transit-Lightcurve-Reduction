@@ -39,6 +39,7 @@ def write_csv(
     header = ["frame_index", "file", "time_raw", "bjd_tdb", "exptime", "flux_sci", "quality_sci"]
     for c in cals:
         header += [f"flux_cal_{c.star.name}", f"quality_cal_{c.star.name}"]
+    header += [f"in_ensemble_{c.star.name}" for c in cals]  # S-21 membership
     header += [f"ratio_{c.star.name}" for c in cals] + ["ratio_ensemble"]
 
     with path.open("w", newline="") as fh:
@@ -57,15 +58,22 @@ def write_csv(
             ]
             for c in cals:
                 row += [_num(c.flux[i]), c.quality[i]]
+            row += [str(c.star.name in lc.used).lower() for c in cals]
             row += [_num(lc.ratios[c.star.name][i]) for c in cals]
             row += [_num(lc.ensemble[i])]
             w.writerow(row)
 
 
 def write_json(
-    path: Path, cfg: Config, params: PlanetParams, frames: FrameSet, started: str, finished: str
+    path: Path,
+    cfg: Config,
+    params: PlanetParams,
+    frames: FrameSet,
+    started: str,
+    finished: str,
+    lc: LightCurve | None = None,
 ) -> None:
-    """Write the JSON sidecar (provenance, method, derived params)."""
+    """Write the JSON sidecar (provenance, method, ensemble membership, params)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     doc = {
         "schema_version": cfg.schema_version,
@@ -88,6 +96,11 @@ def write_json(
             "cut": cfg.reduction.cut,
             "tracking_mode": cfg.tracking.mode,
             "baseline_fit": cfg.transit.baseline_fit,
+        },
+        "ensemble": {
+            "used": lc.used if lc else [],
+            "rejected": lc.rejected if lc else [],
+            "weights": lc.weights if lc else {},
         },
         "results": {
             "depth": params.depth,

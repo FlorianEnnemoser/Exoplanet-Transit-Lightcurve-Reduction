@@ -47,6 +47,7 @@ class FrameSet:
     darks: tuple[Path, ...]
     bias: tuple[Path, ...]
     shape: tuple[int, int]
+    flats: tuple[Path, ...] = ()  # optional; populated only when paths.flats is set (S-8)
 
 
 def _kind(path: Path) -> str:
@@ -55,6 +56,8 @@ def _kind(path: Path) -> str:
         return "bias"
     if ".DARK." in upper:
         return "dark"
+    if ".FLAT." in upper:
+        return "flat"
     return "light"
 
 
@@ -80,10 +83,18 @@ def discover(cfg: Config) -> FrameSet:
     all_light = [p for p in _list_fits(cfg.paths.lights) if _kind(p) == "light"]
     all_dark = [p for p in _list_fits(cfg.paths.darks) if _kind(p) == "dark"]
     all_bias = [p for p in _list_fits(cfg.paths.bias) if _kind(p) == "bias"]
-    buckets = {"lights": all_light, "darks": all_dark, "bias": all_bias}
+    # flats are optional (R-14, S-8): validated only when paths.flats is set.
+    all_flat = (
+        [p for p in _list_fits(cfg.paths.flats) if _kind(p) == "flat"] if cfg.paths.flats else []
+    )
+    buckets = {"lights": all_light, "darks": all_dark, "bias": all_bias, "flats": all_flat}
     dirs = {"lights": cfg.paths.lights, "darks": cfg.paths.darks, "bias": cfg.paths.bias}
 
-    for cat in required:
+    check = list(required)
+    if cfg.paths.flats:  # set but empty/missing is an error; unset is fine
+        dirs["flats"] = cfg.paths.flats
+        check.append("flats")
+    for cat in check:
         if not dirs[cat].is_dir():
             errors.append(f"[paths].{cat}: directory does not exist: {dirs[cat]}")
         elif not buckets[cat]:
@@ -94,7 +105,7 @@ def discover(cfg: Config) -> FrameSet:
 
     # dimensions — within category and across categories
     shape: tuple[int, int] | None = None
-    for cat in required:
+    for cat in check:
         cat_shape: tuple[int, int] | None = None
         for p in buckets[cat]:
             try:
@@ -156,7 +167,13 @@ def discover(cfg: Config) -> FrameSet:
         for i, (p, t, e, b) in enumerate(metas)
     )
     assert shape is not None
-    return FrameSet(lights=lights, darks=tuple(all_dark), bias=tuple(all_bias), shape=shape)
+    return FrameSet(
+        lights=lights,
+        darks=tuple(all_dark),
+        bias=tuple(all_bias),
+        shape=shape,
+        flats=tuple(all_flat),
+    )
 
 
 def load_cube(paths: tuple[Path, ...] | list[Path]) -> np.ndarray:

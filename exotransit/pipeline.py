@@ -11,6 +11,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+from astropy.io import fits
+
 from . import calibration, io_fits, lightcurve, outputs, photometry, planet, timebase, tracking
 from .config import Config
 from .io_fits import FrameSet
@@ -50,12 +52,25 @@ def run(cfg: Config) -> RunResult:
     logger.info("measuring %d stars over %d frames", len(cfg.stars), len(frames.lights))
     phot = photometry.measure_all(frames, masters, shifts, cfg)
     labels = timebase.labels(frames.lights)
-    lc = lightcurve.differential(phot[0], phot[1:], labels)
 
-    # depth from the first calibrator ratio (the thesis' sci/cal1) — pins the
-    # acceptance invariant. ponytail: ensemble-based depth is P1 (S-15).
-    depth_ratio = lc.ratios[cfg.calibrators[0].name]
-    params = planet.compute(depth_ratio, cfg.system)
+    if cfg.transit.baseline_fit == "linear":
+        # linear: BJD_TDB transit windows drive both the Broeg ensemble weighting
+        # (S-15) and the airmass-slope depth fit (S-16). Invariant-safe — WASP-52 b
+        # runs the median path below and never enters this branch.
+        date0 = str(fits.getheader(frames.lights[0].path).get("DATE-OBS", "")).split("T")[0]
+        ingress, egress = timebase.transit_bounds_bjd(date0, cfg.transit, cfg.system)
+        bjd = timebase.bjd_series(frames.lights)
+        lc = lightcurve.differential(
+            phot[0], phot[1:], labels, bjd=bjd, ingress=ingress, egress=egress
+        )
+        params = planet.compute(
+            lc.ensemble, cfg.system, bjd=bjd, ingress=ingress, egress=egress, baseline_fit="linear"
+        )
+    else:
+        # depth from the first calibrator ratio (the thesis' sci/cal1) — pins the
+        # acceptance invariant (median baseline); ensemble stays equal-weight.
+        lc = lightcurve.differential(phot[0], phot[1:], labels)
+        params = planet.compute(lc.ratios[cfg.calibrators[0].name], cfg.system)
 
     if cfg.output.write_csv:
         outputs.write_csv(cfg.paths.output / f"{cfg.casename}_lightcurve.csv", frames, phot, lc)
@@ -66,6 +81,7 @@ def run(cfg: Config) -> RunResult:
         frames,
         started,
         outputs.utcnow(),
+        lc,
     )
 
     if cfg.output.figures:

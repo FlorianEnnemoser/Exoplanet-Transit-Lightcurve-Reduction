@@ -27,7 +27,7 @@ from astropy.stats import sigma_clipped_stats
 from photutils.aperture import CircularAnnulus, CircularAperture, aperture_photometry
 from photutils.detection import DAOStarFinder
 
-from .calibration import MasterFrames, apply_cut, subtract_masters
+from .calibration import MasterFrames, apply_cut, apply_flat, subtract_masters
 from .config import Config, StarSpec
 from .io_fits import FrameSet
 
@@ -128,9 +128,11 @@ def measure_star(
     quality: list[str] = []
     for meta in frames.lights:
         i = meta.index
+        # S-8 order: subtract masters -> flat-field (full frame) -> crop -> cut.
         full = subtract_masters(
             fits.getdata(meta.path).astype(np.float32), masters, cfg.reduction.method
         )
+        full = apply_flat(full, masters)
         dx, dy = shifts[i]
         # legacy indexing: x indexes rows (axis 0), y indexes cols (axis 1)
         x0, y0 = star.x + dx, star.y + dy

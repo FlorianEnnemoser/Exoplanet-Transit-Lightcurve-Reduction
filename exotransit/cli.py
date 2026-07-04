@@ -58,6 +58,7 @@ def _apply_overrides(cfg, args):
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse arguments, run ``reduce``/``validate``, and return the S-6 exit code."""
     parser = argparse.ArgumentParser(prog="exotransit")
     sub = parser.add_subparsers(dest="command", required=True)
 

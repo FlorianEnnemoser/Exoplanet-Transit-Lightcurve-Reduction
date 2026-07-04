@@ -1,0 +1,36 @@
+# CI — lint, type-check, test on push + PR (R-22, S-27, ADR-0007).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.x"]  # oldest supported + latest stable
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Ruff lint
+        run: uv run ruff check
+
+      - name: Ruff format check
+        run: uv run ruff format --check
+
+      - name: Mypy (non-strict)
+        run: uv run mypy exotransit/
+
+      - name: Pytest
+        run: uv run pytest  # acceptance test self-skips without the WASP-52 b data

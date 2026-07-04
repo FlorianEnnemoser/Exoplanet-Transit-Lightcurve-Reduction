@@ -20,16 +20,20 @@ Derived quantities (SI, with R_* in R_sun, a in au, P in days, t_dur in minutes)
                                  / (a·au·1e10) )
 The inclination relation and its ``1e10`` scale factor come straight from the
 thesis code (``:453``); documented here per R-25. ``baseline_fit = "linear"`` (the
-airmass-slope fit) is P1 (S-16).
+airmass-slope fit over BJD_TDB transit windows) is implemented in
+:func:`_linear_depth` (S-16); ``"median"`` stays byte-for-byte for the invariant.
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 import numpy as np
 
 from .config import System
+
+logger = logging.getLogger(__name__)
 
 # Physical constants (metres, kg, seconds) — module constants, not config (S-4).
 R_JUP = 69_911_000.0  # Jupiter radius [m]
@@ -61,9 +65,62 @@ def _window_medians(ratio: np.ndarray) -> tuple[float, float, float]:
     return baseline, mid, baseline
 
 
-def compute(ratio: np.ndarray, sysd: System) -> PlanetParams:
-    """Derive planet parameters from a differential light-curve ratio (sci/cal)."""
-    baseline, in_transit, _ = _window_medians(ratio)
+def _linear_depth(
+    ratio: np.ndarray, bjd: np.ndarray | None, ingress: float | None, egress: float | None
+) -> tuple[float, float]:
+    """Baseline/in-transit from BJD_TDB windows + a linear out-of-transit fit (S-16).
+
+    Windows: pre = before ingress, post = after egress, in = the core between
+    ingress + 10 % and egress − 10 % of the transit duration. A line ``a + b·t``
+    is fit to the pre+post baseline of the differential curve and evaluated at
+    mid-transit; the returned pair is ``(1.0, median(in) / baseline(t_mid))`` so
+    the shared derived-parameter block sees a trend-normalised depth.
+    """
+    if bjd is None or ingress is None or egress is None:
+        raise ValueError("baseline_fit='linear' requires bjd, ingress and egress")
+    bjd = np.asarray(bjd, dtype=float)
+    dur = egress - ingress
+    core_lo, core_hi = ingress + 0.1 * dur, egress - 0.1 * dur
+    finite = np.isfinite(ratio)
+    pre = finite & (bjd < ingress)
+    post = finite & (bjd > egress)
+    in_win = finite & (bjd >= core_lo) & (bjd <= core_hi)
+    base = pre | post
+    if not base.any():
+        raise ValueError("linear baseline: no out-of-transit frames (check predicted_start/end)")
+    if not in_win.any():
+        raise ValueError("linear baseline: no in-transit frames (check predicted_start/end)")
+    for name, mask in (("pre", pre), ("post", post), ("in-transit", in_win)):
+        n = int(np.count_nonzero(mask))
+        if n < 5:
+            logger.warning("linear baseline: only %d usable %s frame(s) (< 5)", n, name)
+    coeffs = np.polyfit(bjd[base], ratio[base], 1)
+    t_mid = 0.5 * (ingress + egress)
+    baseline_at_mid = float(np.polyval(coeffs, t_mid))
+    in_transit = float(np.median(ratio[in_win]) / baseline_at_mid)
+    return 1.0, in_transit
+
+
+def compute(
+    ratio: np.ndarray,
+    sysd: System,
+    *,
+    bjd: np.ndarray | None = None,
+    ingress: float | None = None,
+    egress: float | None = None,
+    baseline_fit: str = "median",
+) -> PlanetParams:
+    """Derive planet parameters from a differential light-curve ratio (sci/cal).
+
+    ``baseline_fit="median"`` (default) uses the legacy fixed 20-frame windows and
+    reproduces the acceptance invariant verbatim. ``baseline_fit="linear"`` uses
+    the BJD_TDB transit windows and airmass-slope fit of :func:`_linear_depth`
+    (S-16), and requires ``bjd``/``ingress``/``egress``.
+    """
+    if baseline_fit == "linear":
+        baseline, in_transit = _linear_depth(ratio, bjd, ingress, egress)
+    else:
+        baseline, in_transit, _ = _window_medians(ratio)
     depth = baseline - in_transit
     delta_mag = -2.5 * np.log10(in_transit / baseline)
 

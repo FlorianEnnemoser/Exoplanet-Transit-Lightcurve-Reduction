@@ -87,28 +87,39 @@ science/correctness pass.
       `master_bias_combine` — fixes the legacy always-mean bias bug; build only the
       masters the method needs (R-10, S-7). *(done — `calibration.build_masters`
       + `METHOD_NEEDS`; `build_master` honours the per-master combine mode.)*
-- [ ] Frame calibration ordering (subtract masters per method → optional flat-field
+- [x] Frame calibration ordering (subtract masters per method → optional flat-field
       → per-frame `cut`), with flat-fielding behind an optional `paths.flats` switch
-      (R-14, S-8).
+      (R-14, S-8). *(done — `io_fits` discovers `.FLAT.` frames when `paths.flats`
+      is set; `calibration.build_master_flat` + `apply_flat`; `measure_star` applies
+      subtract → flat → crop → cut. Flats absent = no-op, invariant untouched.)*
 - [x] Compute **BJD_TDB** per frame from `DATE-OBS`/`TIME-OBS` + `EXPTIME`
       (mid-exposure) and target/site coordinates; use it as the light-curve time
       ordinate everywhere; retain the raw header string for provenance
       (R-12, S-14, ADR-0003). *(computed in `io_fits.discover`, carried on
       `FrameMeta.bjd_tdb`, written to the CSV; plots/time-windows consume it when
       those P1 items land.)*
-- [ ] Derive transit windows from predicted ingress/egress times and add a **linear
+- [x] Derive transit windows from predicted ingress/egress times and add a **linear
       baseline fit** for the out-of-transit airmass slope (HAT-P-19 b); retire the
       fixed "first 20 / middle 20 / last 20" windows and `x_ax_loc` tick indices
-      (R-13, S-16, S-23).
+      (R-13, S-16, S-23). *(done — `planet._linear_depth` fits `a+b·t` over BJD_TDB
+      pre/post windows; `timebase.transit_bounds_bjd` converts predicted times;
+      `pipeline` dispatches on `baseline_fit`. The fixed 20-frame windows survive
+      only in the `"median"` path that pins the invariant; `x_ax_loc` is moot until
+      `plots.py` lands.)*
 - [x] Derived parameters `R_p` / ρ / `i` (+ max inclination) with Gaussian error
       propagation; document the exact SI inclination formula and its derivation in
       the `planet.py` docstring (R-13, R-25, S-17). *(done — `planet.compute`
       returns all params + errors; the SI inclination relation and its `1e10`
       scale are documented in the module docstring.)*
-- [ ] Weighted-ensemble differential comparison (Broeg-style): artificial comparison
+- [x] Weighted-ensemble differential comparison (Broeg-style): artificial comparison
       star, baseline-only weights, iterative rejection, guarded N=1 passthrough;
       keep per-calibrator diagnostic ratios and record used/rejected membership
-      (R-15, S-15, ADR-0005).
+      (R-15, S-15, ADR-0005). *(done — `lightcurve._broeg`: own-variance init then
+      leave-one-out `1/σ²` weights over the out-of-transit window, gross-outlier
+      rejection (5× median σ); N=1 / no-window falls back to equal-weight
+      passthrough so the median-baseline invariant is unchanged. Membership +
+      weights recorded in the CSV (`in_ensemble_*`) and JSON `ensemble` block.
+      Linear+ensemble on the WASP-52 b set → R_p≈1.14, ρ≈417, i≈87.4.)*
 - [x] Automatic drift tracking via whole-frame **phase cross-correlation**
       (`skimage.registration`), one global `(dx, dy)` per frame + per-star centroid
       refinement; keep manual `manual_shifts` as an explicit fallback
@@ -137,12 +148,15 @@ science/correctness pass.
       exception logs a warning and never aborts a run after fluxes are computed
       (R-19, S-23). *(done — `pipeline.run` guards `plots.render`; `output.figures`
       gate defaults off.)*
-- [ ] CI (GitHub Actions) on push + PR: `uv sync` → `ruff check` + `ruff format
+- [x] CI (GitHub Actions) on push + PR: `uv sync` → `ruff check` + `ruff format
       --check` → `mypy exotransit/` (non-strict) → `pytest`, on a Python 3.13 +
-      latest matrix (R-22, NFR-2, S-27, ADR-0007).
-- [ ] NumPy-style docstrings on all public functions; type hints passing `mypy`
+      latest matrix (R-22, NFR-2, S-27, ADR-0007). *(done — `.github/workflows/ci.yml`;
+      acceptance test self-skips without the WASP-52 b data.)*
+- [x] NumPy-style docstrings on all public functions; type hints passing `mypy`
       non-strict; update `README.md` with install + run instructions once packaging
-      lands (R-25, NFR-2, S-28).
+      lands (R-25, NFR-2, S-28). *(done — `mypy exotransit/` clean; ruff excludes the
+      legacy `src/`; `README.md` has install/run/physics; public functions carry
+      docstrings.)*
 
 ### P2 — After the invariant holds
 

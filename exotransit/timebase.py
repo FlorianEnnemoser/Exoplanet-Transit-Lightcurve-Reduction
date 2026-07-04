@@ -23,7 +23,7 @@ from astropy import units as u
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
 
-from .config import System
+from .config import System, Transit
 from .io_fits import FrameMeta
 
 
@@ -70,6 +70,22 @@ def bjd_tdb(
     t_mid = t_mid + (exptime / 2.0) * u.s
     ltt = t_mid.light_travel_time(target, kind="barycentric")
     return float((t_mid.tdb + ltt).jd)
+
+
+def transit_bounds_bjd(date_iso: str, transit: Transit, system: System) -> tuple[float, float]:
+    """Convert ``[transit].predicted_start/end`` (UTC wall clock) to BJD_TDB (S-16).
+
+    ``date_iso`` is the observation date (``YYYY-MM-DD``) taken from the frames.
+    A predicted egress earlier than ingress is treated as crossing UTC midnight
+    and rolled to the next day.
+    """
+    target = target_coord(system)
+    site = observatory(system)
+    ingress = bjd_tdb(f"{date_iso}T{transit.predicted_start}", None, 0.0, target, site)
+    egress = bjd_tdb(f"{date_iso}T{transit.predicted_end}", None, 0.0, target, site)
+    if egress < ingress:
+        egress += 1.0
+    return ingress, egress
 
 
 def bjd_series(frames: Iterable[FrameMeta]) -> np.ndarray:
