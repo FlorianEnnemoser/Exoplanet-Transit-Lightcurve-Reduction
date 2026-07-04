@@ -16,7 +16,7 @@ import logging
 import os
 import csv
 
-import exo_input_values
+from exoplanet_lightcurve import exo_input_values
 
 ############# INITIALIZE LOGGER #############
 
