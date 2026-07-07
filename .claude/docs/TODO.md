@@ -148,10 +148,18 @@ science/correctness pass.
       exception logs a warning and never aborts a run after fluxes are computed
       (R-19, S-23). *(done — `pipeline.run` guards `plots.render`; `output.figures`
       gate defaults off.)*
-- [x] CI (GitHub Actions) on push + PR: `uv sync` → `ruff check` + `ruff format
-      --check` → `mypy exotransit/` (non-strict) → `pytest`, on a Python 3.13 +
-      latest matrix (R-22, NFR-2, S-27, ADR-0007). *(done — `.github/workflows/ci.yml`;
-      acceptance test self-skips without the WASP-52 b data.)*
+- [x] CI (GitHub Actions) on push + PR: `uv sync --all-groups` → `ruff check` +
+      `ruff format --check` → `mypy exotransit/` (non-strict) → `pytest`, on an
+      explicit Python 3.13 + 3.14 matrix (R-22, NFR-2, S-27, ADR-0007).
+      *(done — `.github/workflows/ci.yml`; acceptance test self-skips without the
+      WASP-52 b data.)* **Postmortem 2026-07-07:** the first two workflow versions
+      never went green — every run on `develop` failed. Two causes: (a) the
+      "latest" matrix entry `"3"` made `setup-uv` resolve the runner's *system*
+      Python 3.12, failing `requires-python >=3.13` at `uv sync` (`"3.x"` had
+      already been rejected by uv); (b) plain `uv sync` omitted the `web`
+      dependency group, so `tests/test_webapp.py`'s module-level `fastapi` import
+      aborted pytest collection. Fixed by pinning the matrix (`"3.13"`, `"3.14"`)
+      and syncing with `--all-groups`; details in SPECS S-27.
 - [x] NumPy-style docstrings on all public functions; type hints passing `mypy`
       non-strict; update `README.md` with install + run instructions once packaging
       lands (R-25, NFR-2, S-28). *(done — `mypy exotransit/` clean; `README.md` has

@@ -627,10 +627,17 @@ determinism helps:
 
 **Traces:** R-22, NFR-2, ADR-0002, ADR-0007
 
-- GitHub Actions on push + PR: `uv sync` → `ruff check` + `ruff format
-  --check` → `mypy exotransit/` (non-strict) → `pytest`.
+- GitHub Actions on push + PR: `uv sync --all-groups` → `ruff check` + `ruff format
+  --check` → `mypy exotransit/` (non-strict) → `pytest`. The sync MUST include
+  the `web` dependency group: `tests/test_webapp.py` imports `fastapi` at module
+  level, and a plain `uv sync` (default groups only) aborts the whole pytest
+  collection with `ModuleNotFoundError`.
 - Ruff configured in `pyproject.toml`; its version pinned via `uv.lock`.
-- Matrix: the oldest supported (3.13) and latest stable Python.
+- Matrix: the oldest supported (3.13) and latest stable Python, both **pinned
+  explicitly** (e.g. `"3.14"`); bump the pin when a new CPython minor lands.
+  Neither floating spelling works with `setup-uv`: uv rejects `"3.x"`, and a
+  bare `"3"` resolves to the runner's *system* interpreter (Python 3.12), which
+  fails the project's `requires-python >=3.13`.
 
 ## 12. Non-functional
 

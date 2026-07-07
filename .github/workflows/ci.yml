@@ -11,7 +11,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13", "3"]  # oldest supported + latest stable (uv rejects "3.x")
+        # Oldest supported + latest stable, pinned explicitly. uv rejects "3.x",
+        # and a bare "3" resolves to the runner's system Python (3.12) which
+        # violates requires-python >=3.13 — bump the pin on new CPython releases.
+        python-version: ["3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +24,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Sync dependencies
-        run: uv sync
+        run: uv sync --all-groups  # web group included — tests/test_webapp.py imports fastapi
 
       - name: Ruff lint
         run: uv run ruff check
